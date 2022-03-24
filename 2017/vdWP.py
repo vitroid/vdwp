@@ -1,6 +1,6 @@
 # coding: utf-8
-from math import *
 import physconst as pc
+import numpy as np
 
 #占有率を求める。
 # mu: chemical potential of the gas
@@ -9,7 +9,7 @@ def Occupancy( mu, f, Temp ):
     Beta = 1.0 / ( pc.NkB * Temp )
     occ = dict()
     for i in f.keys():
-        occ[i] = exp(Beta*(mu - f[i])) / (1.0 + exp(Beta*(mu - f[i])))
+        occ[i] = np.exp(Beta*(mu - f[i])) / (1.0 + np.exp(Beta*(mu - f[i])))
     return occ
 
 
@@ -17,8 +17,6 @@ def Occupancy( mu, f, Temp ):
 def FreeEnergyOfVibration(nmafile, Temp):
     import os
     import os.path
-    if Temp == 0.0:
-        return 0.0
     sum=0.0
     wsum = 0.0
     dof = 6.0
@@ -32,7 +30,7 @@ def FreeEnergyOfVibration(nmafile, Temp):
         omega = float(bin) #+0.5
         weight = float(weight)
         #if omega > 1.0:
-        sum  += weight * pc.NkB * Temp * log(Beta * pc.h * omega * pc.cc)
+        sum  += weight * pc.NkB * Temp * np.log(Beta * pc.h * omega * pc.cc)
         wsum += weight
     f = sum * dof / wsum
     return f
