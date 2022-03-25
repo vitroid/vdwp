@@ -7,6 +7,8 @@ name = "pypi"
 matplotlib = "*"
 
 [dev-packages]
+autopep8 = "*"
+genice2 = "*"
 
 [requires]
 python_version = "3.9"
