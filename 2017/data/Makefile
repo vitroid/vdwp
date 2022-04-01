@@ -1,8 +1,8 @@
-BINPATH=~/Dropbox/gitbox/CageIntegral
+BINPATH=../../../CageIntegral
 me:
 	for mol in LJMEs2__ LJME____ LJMEs3__ LJMEs4__ LJMEs5__ LJMEe0__ LJMEe2__ \
 	LJAR____ LJXE____ LJET____ LJBR2___ LJCS2___ LJKR____ LJCO2___ EKABR2__ \
-	LJCF4___ \
+	LJCF4___ HTCO2___ \
 	CH2CL2__ CHCL3___ CH3CL___ CH3BR___ C2H4F2__ 	C2H5F___ 	C2HF5___ \
 		CCL2F2__	CCL3F___	CH2CLF__	CH2FCF3_	CH3CL___ \
 		CHCL2F__	CHCLF2__	CL2FCCH3	CLF2CCH3	PROPANE_ \
@@ -10,7 +10,7 @@ me:
 		for cage in 12 14 15 16; do\
 			echo $$mol.ice$${cage}.histo; \
 		done; \
-	done | xargs make -j 8 -k 
+	done | xargs make -k 
 
 
 all:
@@ -36,10 +36,13 @@ all:
 	cat DEFR $< | time $(BINPATH)/histogram -i "$*" > $@
 
 %.ice12.histo: 12hedra.nx4a
-	cat DEFR $< | time $(BINPATH)/histogram -i "$*" -w "TIP4PICE" > $@
+	cat DEFR $< | time $(BINPATH)/histogram.omp -i "$*" -w "TIP4PICE" > $@
 %.ice14.histo: 14hedra.nx4a
-	cat DEFR $< | time $(BINPATH)/histogram -i "$*" -w "TIP4PICE"  > $@
+	cat DEFR $< | time $(BINPATH)/histogram.omp -i "$*" -w "TIP4PICE"  > $@
 %.ice15.histo: 15hedra.nx4a
-	cat DEFR $< | time $(BINPATH)/histogram -i "$*" -w "TIP4PICE"  > $@
+	cat DEFR $< | time $(BINPATH)/histogram.omp -i "$*" -w "TIP4PICE"  > $@
 %.ice16.histo: 16hedra.nx4a
-	cat DEFR $< | time $(BINPATH)/histogram -i "$*" -w "TIP4PICE"  > $@
+	cat DEFR $< | time $(BINPATH)/histogram.omp -i "$*" -w "TIP4PICE"  > $@
+
+syncback:
+	rsync -av --include="*.histo" --exclude="*" 172.23.78.15:github/vdwp/2017/data/ .

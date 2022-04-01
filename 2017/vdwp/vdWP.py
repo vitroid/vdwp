@@ -1,5 +1,5 @@
 # coding: utf-8
-import physconst as pc
+import CageIntegral.physconst as pc
 import numpy as np
 from logging import getLogger
 from functools import lru_cache
@@ -60,6 +60,10 @@ def ChemPotByOccupation(temperatures, f_c, mu_guest, structures):
     logger = getLogger()
     Deltamu = dict()
 
+    if type(f_c) == dict:
+        f_c = [f_c]
+        mu_guest = [mu_guest]
+
     for structure in structures:
         # number of water molecules and cages in a unit cell
         Nw, cages = crystals.cage_components[structure]
@@ -67,11 +71,14 @@ def ChemPotByOccupation(temperatures, f_c, mu_guest, structures):
         sum = np.zeros_like(temperatures)
         beta = 1.0 / (pc.NkB * temperatures)
         for cage in cages:
-            if cage in f_c:
-                coeffs = -pc.NkB * temperatures * cages[cage] / Nw
-                body = np.log(1 + np.exp(beta * (mu_guest - f_c[cage])))
-                add = coeffs * body
-                sum = sum + add
+            alpha = cages[cage] / Nw
+            coeffs = -pc.NkB * temperatures * alpha
+            sum0 = 1.0
+            for f, mu in zip(f_c, mu_guest):
+                # assume single occupation
+                if cage in f:
+                    sum0 += np.exp(beta * (mu - f[cage]))
+            sum = sum + coeffs * np.log(sum0)
         Deltamu[structure] = sum
 
     return Deltamu

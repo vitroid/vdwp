@@ -23,6 +23,7 @@ logger = getLogger()
 logger.debug("Debug mode.")
 
 
+figure = plt.figure()
 
 
 def drawLine(A, B, C):
@@ -86,7 +87,10 @@ def LoadMoleculeDict(filename):
     moldict["LJAR____"].name = "Ar"
     moldict["LJET____"].name = "Et"
     moldict["LJXE____"].name = "Xe"
+    moldict["LJKR____"].name = "Kr"
+    moldict["LJCO2___"].name = "CO2"
     moldict["LJBR2___"].name = "Br2"
+    moldict["EKABR2__"].name = "EkaBr2"
     return moldict
 
 
@@ -211,8 +215,19 @@ for guest in ("LJMEs2__", "LJMEs3__", "LJMEs4__", "LJMEs5__"):
 
 plt.plot(X, Y, "s-")
 
+# 4. いろんな分子。BR2のパラメータは手で調節した。
 
-for guest in ("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___"):
+guests = """
+LJME____ LJMEs3__ LJMEs4__ LJMEs5__ LJMEe0__ LJMEe2__ \
+	LJAR____ LJXE____ LJET____ LJBR2___ LJCS2___ LJKR____ LJCO2___ EKABR2__ \
+	LJCF4___ HTCO2___ \
+	CH2CL2__ CHCL3___ CH3CL___ CH3BR___ C2H4F2__ 	C2H5F___ 	C2HF5___ \
+		CCL2F2__	CCL3F___	CH2CLF__	CH2FCF3_	CH3CL___ \
+		CHCL2F__	CHCLF2__	CL2FCCH3	CLF2CCH3	PROPANE_ \
+		ISOBUTAN
+        """.split()
+
+for guest in guests: #("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___", "LJPR____", "LJKR____", "LJCO2___", "EKABR2__"):
     mol = moldict[guest]
     # 分子が変わると、質量が変わる。ただし、この項はΔμの差には効かないので、計算しなくてもいい。
     stericterm = chempot.StericFix(temperatures, mol.mass, mol.symm, mol.moi)
@@ -237,4 +252,77 @@ for guest in ("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___"):
 
 
 
+# 5. Mixture of methane and ethane.
+temperatures = 273.15
+p0 = 101326*50 # 50 bar
+
+
+pairs = (("LJME____", "LJET____"),
+         ("LJXE____", "LJET____"),
+         ("LJME____", "C2H4F2__"),
+         ("LJXE____", "C2H4F2__"),
+         ("LJCO2___", "C2H4F2__"),
+         ("LJME____", "LJBR2___"),
+         ("LJET____", "LJBR2___"),
+         ("LJME____", "LJXE____"),
+         ("LJME____", "LJCO2___"),
+         ("LJCO2___", "LJBR2___"),
+         ("LJCO2___", "C2H5F___"),
+         ("LJME____", "C2H5F___"),
+         ("LJCO2___", "EKABR2__"),
+         ("LJET____", "LJCO2___"),
+         ("LJXE____", "LJBR2___"))
+
+
+def DoubleClathrate(ticks=np.linspace(0.0, 1.0, 100)):
+    mol_me = moldict[me]
+    stericterm_me = chempot.StericFix(temperatures, mol_me.mass, mol_me.symm, mol_me.moi)
+    f_me = vdWP.EncagingFE(temperatures, me, stericterm_me)
+
+    mol_et = moldict[et]
+    stericterm_et = chempot.StericFix(temperatures, mol_et.mass, mol_et.symm, mol_et.moi)
+    f_et = vdWP.EncagingFE(temperatures, et, stericterm_et)
+
+    X = []
+    Y = []
+    for r in ticks:
+        p_me = (1-r)*p0
+        p_et = r*p0
+
+        if p_me == 0:
+            mu_et = (
+                chempot.chempot(temperatures, p_et) +
+                chempot.IntegrationFixMinus(temperatures, mol_et.dimen) + stericterm_et)
+            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_et, mu_et, structures)
+        elif p_et == 0:
+            mu_me = (
+                chempot.chempot(temperatures, p_me) +
+                chempot.IntegrationFixMinus(temperatures, mol_me.dimen) + stericterm_me)
+            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_me, mu_me, structures)
+        else:
+            mu_me = (
+                chempot.chempot(temperatures, p_me) +
+                chempot.IntegrationFixMinus(temperatures, mol_me.dimen) + stericterm_me)
+            mu_et = (
+                chempot.chempot(temperatures, p_et) +
+                chempot.IntegrationFixMinus(temperatures, mol_et.dimen) + stericterm_et)
+            Deltamu = vdWP.ChemPotByOccupation(temperatures, (f_me, f_et), (mu_me, mu_et), structures)
+
+        x = Deltamu["CS1"] - Deltamu["HS1"]
+        y = Deltamu["CS2"] - Deltamu["HS1"]
+        X.append(x)
+        Y.append(y)
+    return X,Y
+
+
+for me, et in pairs:
+    ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
+    X, Y = DoubleClathrate(ticks)
+    plt.plot(X, Y, "-")
+    X, Y = DoubleClathrate(np.linspace(0.0, 1.0, 11))
+    plt.plot(X, Y, ".")
+
+
+
 plt.show()
+figure.savefig("phasediagram.pdf")
