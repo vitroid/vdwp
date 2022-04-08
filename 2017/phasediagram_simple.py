@@ -5,6 +5,7 @@
 # ケージ積分の代わりにljdを用いる。
 # 必然的に、単原子モデル以外は扱えない。
 # 相境界の条件は50気圧、273 Kのみにする。
+# moldictの利用をやめる。
 
 import vdwp.vdWP as vdWP
 import vdwp.crystals as crystals
@@ -18,6 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import combinations
 from logging import getLogger, DEBUG, INFO, basicConfig
+from attrdict import AttrDict
 
 # basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
 basicConfig(level=INFO, format="%(levelname)s %(message)s")
@@ -44,60 +46,8 @@ def drawLine(A, B, C):
         Y = (-C - A * X) / B
         plt.plot(X, Y)
 
-# def elimempty(values):
-#   newvalues = []
-#   for value in values:
-#     if value != "":
-#       newvalues.append(value)
-#   return newvalues
 
 
-#! Test case for methane hydrate
-
-
-def LoadMoleculeDict(filename):
-    file = open(filename, encoding="utf-8")
-    moldict = molecule.loadInfo(file)
-    # Supplementary info
-    for key, mol in moldict.items():
-        if sum(mol.moi) == 0:
-            mol.symm = 1
-            mol.dimen = 0
-            mol.dof = 3
-        elif np.product(mol.moi) == 0:
-            mol.symm = 2  # not always correct
-            mol.dimen = 1
-            mol.dof = 5
-        else:
-            mol.symm = 2  # not always correct
-            mol.dimen = 3
-            mol.dof = 6
-        mol.name = key
-    # Aliases
-    moldict["NEGTHF__"].name = "THF(invert)"
-    moldict["CJTHF___"].name = "THF"
-    moldict["CPENTANE"].name = "cPentane"
-    moldict["CPENTAN+"].name = "cPentane (105%)"
-    moldict["CPENTAN-"].name = "cPentane (95%)"
-    moldict["CPEN+5L_"].name = "cPentane (105% L)"
-    moldict["CPEN-5L_"].name = "cPentane (95% L)"
-    moldict["CPENTA++"].name = "cPentane (110%)"
-    moldict["CPENTA--"].name = "cPentane (90%)"
-    moldict["LJME____"].name = "Methane"
-    moldict["TYTHF___"].name = "THF(Yaga)"
-    moldict["LJAR____"].name = "Ar"
-    moldict["LJET____"].name = "Et"
-    moldict["LJXE____"].name = "Xe"
-    moldict["LJKR____"].name = "Kr"
-    moldict["LJCO2___"].name = "CO2"
-    moldict["LJBR2___"].name = "Br2"
-    moldict["LJBR2LJD"].name = "Br2"
-    moldict["EKABR2__"].name = "EkaBr2"
-    return moldict
-
-
-moldict = LoadMoleculeDict("data/DEFR")
-#
 # 変数の命名則
 # f, mu: free energy/chemical potential
 #h    : enthalpy
@@ -119,11 +69,11 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
         if pressure > 0.0:
             mu.append(
                 chempot.chempot(temperatures, pressure) +
-                chempot.IntegrationFixMinus(temperatures, gas.dimen))
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
             ff = dict()
             for cage, R in radii.items():
                 # sigma and epsilon must be the intermolecular ones.
-                ff[cage] = fvalue({R: nmemb[cage]}, gas.sigma, gas.epsilon, beta)
+                ff[cage] = fvalue({R: nmemb[cage]}, gas.sig, gas.epsK * 8.314/1000, beta)
             f.append(ff)
     Deltamu = vdWP.ChemPotByOccupation(temperatures, f, mu, structures)
 
@@ -131,26 +81,51 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
     Y = Deltamu["CS2"] - Deltamu["HS1"]
     return X, Y
 
+gastable = """
+Methane 3.758 148.6 $\mathrm{CH}_4$
+Ethane 4.520 208.8
+Ne 2.749 35.6
+Ar 3.405 119.8
+Kr 3.60 171.0
+Xe 4.047 231.0
+Br2 4.933 488 $\mathrm{Br}_2$
+CO2 4.486 189.0 $\mathrm{CO}_2$
+CS2 4.438 488 $\mathrm{CS_2}$
+N2O 4.59 189 $\mathrm{N_2O}$
+CF4 4.70 152.5 $\mathrm{CF_4}$
+n-Butane 4.997 410 {\it n}-Butane
+""".splitlines()
 
+tip4pice = AttrDict({"sig": 3.1668, "epsK": 106.1})
+
+gases = dict()
+inter = dict()
+for gas in gastable:
+    cols = gas.rstrip().split(maxsplit=3)
+    if len(cols) == 0:
+        continue
+    if len(cols) == 3:
+        tex = r"$\mathrm{" + cols[0] + r"}$"
+        cols.append(tex)
+    # print(len(cols))
+    name, sig, epsK, tex = cols
+    gases[name] = AttrDict({"sig": float(sig), "epsK": float(epsK), "TeX": tex})
+    inter[name] = AttrDict({"sig": (float(sig)+tip4pice.sig)/2,
+                            "epsK": (float(epsK)*tip4pice.epsK)**0.5,
+                            "TeX": tex})
 
 # User variables
 pressure = 101325.00 * 50  # Pa
 temperatures = 273.15
-guest = "LJME____"
-host = "TIP4PICE"
+# guest = "Methane"
 structures = ["CS2", "CS1", "HS1", "TS1"]  # , "TS1", "HS1"]
 
 ####### chemical potential of gas ######################################
-mol = moldict[guest]
-logger.info(f"Calculating chemical potential of guest {mol.name}...")
-logger.info(f"Regard the guest in gas state at {pressure} Pa.")
-
-stericterm = chempot.StericFix(temperatures, mol.mass, mol.symm, mol.moi)
-
+stericterm = chempot.StericFix(temperatures, mass=1.0, symm=1, moi=(0,0,0))
 
 mu_g = (
     chempot.chempot(temperatures, pressure) +
-    chempot.IntegrationFixMinus(temperatures, mol.dimen) + stericterm)
+    chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
 
 ####### structure-dependent terms ######################################
 
@@ -183,7 +158,6 @@ for s1, s2 in combinations(structures, 2):
     C = mu_e[s1] - mu_e[s2]
     drawLine(A, B, C)
 
-
 def determine_phase(mu_e, Deltamu, structures):
     mumin = 0
     stmin = None
@@ -193,15 +167,13 @@ def determine_phase(mu_e, Deltamu, structures):
             stmin = s
     return stmin
 
-
-
 ####### cage-dependent terms ###########################################
 radii = {12: 3.894043995956962, 14: 4.3269124645840025, 15: 4.479370276434863, 16: 4.694779956202102}
 nmemb = {12:20, 14:24, 15:26, 16:28}
 beta = 1.0 / (NkB * temperatures)
-for guest in ("LJME____", "LJET____", "LJXE____", "LJBR2LJD", "LJAR____", "LJKR____", "LJNE____", "LJCO2HT_"):
-    sigma = (moldict[host].intr[0][1] + moldict[guest].intr[0][1])/2
-    epsilon = (moldict[host].intr[0][0] * moldict[guest].intr[0][0])**0.5 # in kJ/mol
+for name, gas in inter.items():
+    sigma = gas.sig
+    epsilon = gas.epsK * 8.314 / 1000# in kJ/mol
     f_c = dict()
     for cage, R in radii.items():
         f_c[cage] = fvalue({R: nmemb[cage]}, sigma, epsilon, beta) + stericterm
@@ -209,32 +181,22 @@ for guest in ("LJME____", "LJET____", "LJXE____", "LJBR2LJD", "LJAR____", "LJKR_
 
     X = Deltamu["CS1"] - Deltamu["HS1"]
     Y = Deltamu["CS2"] - Deltamu["HS1"]
-    plt.plot(X, Y, ".")
-    plt.annotate(moldict[guest].name, # this is the text
+    plt.plot(X, Y, "o")
+    plt.annotate(gas.TeX, # this is the text
                 (X, Y), # these are the coordinates to position the label
                 textcoords="offset points", # how to position the text
                 xytext=(0,10), # distance from text to points (x,y)
                 ha='center') # horizontal alignment can be left, right or center
 
     phase = determine_phase(mu_e, Deltamu, structures)
-    print(f"{guest}: {phase}")
 
-
-from attrdict import AttrDict
-gases = []
-for guest in ["LJME____", "LJET____", "LJBR2LJD", "LJXE____", ]:
-    gases.append(AttrDict({"sigma": (moldict[host].intr[0][1] + moldict[guest].intr[0][1])/2,
-                           "epsilon": (moldict[host].intr[0][0] * moldict[guest].intr[0][0])**0.5,
-                           "dimen": 0,
-                           "name": moldict[guest].name}))
-
-for a, b in ((gases[0],gases[1]), (gases[0],gases[3]), (gases[2],gases[3]),):
+for a, b in ("Methane", "Ethane"), ("Methane", "Xe"), ("Xe", "Br2"):
     pressures = np.zeros(2)
     X = []
     Y = []
-    for pressures[0] in np.concatenate([np.linspace(0.000, 0.99, 1000), np.linspace(1.0, 50 - pressures[0],100)]):
-        pressures[1] = 50.0 - pressures[0]
-        x,y = MultipleClathrate((a, b), pressures*101326, temperatures, structures)
+    for pressures[1] in np.concatenate([np.linspace(0.000, 0.99, 1000), np.linspace(1.0, 50 - pressures[0],100)]):
+        pressures[0] = 50.0 - pressures[1]
+        x,y = MultipleClathrate((inter[a], inter[b]), pressures*101326, temperatures, structures)
         X.append(x)
         Y.append(y)
     plt.plot(X,Y, "-")
@@ -242,7 +204,7 @@ for a, b in ((gases[0],gases[1]), (gases[0],gases[3]), (gases[2],gases[3]),):
     Y = []
     for pressures[0] in np.linspace(0.0, 50, 11):
         pressures[1] = 50.0 - pressures[0]
-        x,y = MultipleClathrate((a, b), pressures*101326, temperatures, structures)
+        x,y = MultipleClathrate((inter[a], inter[b]), pressures*101326, temperatures, structures)
         X.append(x)
         Y.append(y)
     plt.plot(X,Y, ".")
@@ -277,8 +239,8 @@ def DoubleClathrate(g1, g2, beta, pressure, ticks=np.linspace(0.0, 1.0, 100)):
     f2 = dict()
     for cage, R in radii.items():
         # sigma and epsilon must be the intermolecular ones.
-        f1[cage] = fvalue({R: nmemb[cage]}, g1.sigma, g1.epsilon, beta)
-        f2[cage] = fvalue({R: nmemb[cage]}, g2.sigma, g2.epsilon, beta)
+        f1[cage] = fvalue({R: nmemb[cage]}, g1.sig, g1.epsK*8.314/1000, beta)
+        f2[cage] = fvalue({R: nmemb[cage]}, g2.sig, g2.epsK*8.314/1000, beta)
 
     phases = set()
     for r in ticks:
@@ -288,20 +250,20 @@ def DoubleClathrate(g1, g2, beta, pressure, ticks=np.linspace(0.0, 1.0, 100)):
         if p1 == 0:
             mu2 = (
                 chempot.chempot(temperatures, p2) +
-                chempot.IntegrationFixMinus(temperatures, g2.dimen))
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
             Deltamu = vdWP.ChemPotByOccupation(temperatures, f2, mu2, structures)
         elif p2 == 0:
             mu1 = (
                 chempot.chempot(temperatures, p1) +
-                chempot.IntegrationFixMinus(temperatures, g1.dimen))
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
             Deltamu = vdWP.ChemPotByOccupation(temperatures, f1, mu1, structures)
         else:
             mu1 = (
                 chempot.chempot(temperatures, p1) +
-                chempot.IntegrationFixMinus(temperatures, g1.dimen))
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
             mu2 = (
                 chempot.chempot(temperatures, p2) +
-                chempot.IntegrationFixMinus(temperatures, g2.dimen))
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
             Deltamu = vdWP.ChemPotByOccupation(temperatures, (f1, f2), (mu1, mu2), structures)
 
         phase = determine_phase(mu_e, Deltamu, structures)
@@ -309,82 +271,29 @@ def DoubleClathrate(g1, g2, beta, pressure, ticks=np.linspace(0.0, 1.0, 100)):
     return phases, phase
 
 
-from attrdict import AttrDict
+def mark(sig, epsK, phases, lastphase, ax):
+    markers = {1:"o", 2:"+", 3:"^"}
+    if lastphase == "CS1":
+        color = "lightgreen"
+    elif lastphase == "CS2":
+        color = "#4666ff"
+    else:
+        color = "brown"
+    # I-III-Iの場合を区別して描く。
+    if lastphase == "CS1" and "TS1" in phases and len(phases) == 2:
+        ax.plot(sig, epsK, color="orange", marker=".")
+    else:
+        ax.plot(sig, epsK, color=color, marker=markers[len(phases)])
+        if len(phases) == 3:
+            print(sig, epsK, phases, lastphase)
 
-
-def cities(ax):
+def cities(ax, gases):
     # 地図の上に、都市(分子)を描く。
-    # import fridge as fr
-    # for row in fr.refrigerants().itertuples():
-    #     index, name, sig, eps = row
-    #     print(name, sig, eps)
-    #     plt.plot(sig, eps, "ok")
-    #     plt.annotate(name, # this is the text
-    #                 (sig, eps), # these are the coordinates to position the label
-    #                 textcoords="offset points", # how to position the text
-    #                 xytext=(0,10), # distance from text to points (x,y)
-    #                 ha='center') # horizontal alignment can be left, right or center
-
-    for guest in ("LJME____", "LJET____", "LJXE____", "LJBR2LJD", "LJAR____", "LJNE____", "LJKR____", "LJCO2HT_"):
-        sig = moldict[guest].intr[0][1]
-        eps = moldict[guest].intr[0][0] / 8.314 * 1000 # K
-        ax.plot(sig, eps, "ok")
-        ax.annotate(moldict[guest].name, # this is the text
-                    (sig, eps), # these are the coordinates to position the label
-                    textcoords="offset points", # how to position the text
-                    xytext=(0,10), # distance from text to points (x,y)
-                    ha='center') # horizontal alignment can be left, right or center
-
-    # # Critical point of Lennard-Jones fluid
-    # Tc = 1.321 # T*, T*=kT/eps これで温度からepsを算出できる。
-    # Pc = 0.129 # P*, P* = P sig**3 / eps
-
-    # cp = {"Acetone": {"Tc": 508, # K
-    #                   "Pc": 48*101326 #Pa
-    #                   },
-    #       "DME": {"Tc": 402, # K
-    #               "Pc": 52.6*101326 #Pa
-    #               },
-    #       "EO": {"Tc": 469, # K
-    #              "Pc": 72.3*101326 #Pa
-    #              },}
-
-    # for guest, spec in cp.items():
-    #     tc, pc = spec["Tc"], spec["Pc"]
-    #     eps = NkB*tc / Tc # in kJ/mol
-    #     sig = (Pc * eps*1e3/NA / pc)**(1/3)*1e10  # epsをkJ/molからJ / moleculeに換算。これはそれらしい数値。
-    #     print(guest, sig, eps)
-    #     plt.plot(sig, eps, "ok")
-    #     plt.annotate(guest, # this is the text
-    #                 (sig, eps), # these are the coordinates to position the label
-    #                 textcoords="offset points", # how to position the text
-    #                 xytext=(0,10), # distance from text to points (x,y)
-    #                 ha='center') # horizontal alignment can be left, right or center
-
-    gases = [AttrDict({"sig":4.438, # AA
-                       "eps":488, # K
-                       "name":"CS2",}),
-             AttrDict({"sig":4.997, # AA
-                       "eps":410, # K
-                       "name":"n-C4H10",}),
-             AttrDict({"sig":4.70, # AA
-                       "eps":152.5, # K
-                       "name":"CF4",}),
-             AttrDict({"sig":4.59, # AA
-                       "eps":189, # K
-                       "name":"N2O",}),
-             AttrDict({"sig":5.061, # AA
-                       "eps":254, # K
-                       "name":"Propane",}),
-    ]
-# CF4 4.70 152.5
-# N2O 4.59 189
-    for gas in gases:
+    for name, gas in gases.items():
         sig = gas.sig
-        eps = gas.eps # K
-        name = gas.name
+        eps = gas.epsK
         ax.plot(sig, eps, "ok")
-        ax.annotate(name, # this is the text
+        ax.annotate(gas.TeX, # this is the text
                     (sig, eps), # these are the coordinates to position the label
                     textcoords="offset points", # how to position the text
                     xytext=(0,10), # distance from text to points (x,y)
@@ -393,72 +302,41 @@ def cities(ax):
 
 fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(8, 4), sharey=True, gridspec_kw={'wspace': 0})
 # Meと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
-markers = {1:"o", 2:"+", 3:"^"}
-guest = "LJME____"
+guest = "Methane"
 axes[0].set_xlabel(r"$\sigma_g / \mathrm\AA$")
 axes[0].set_ylabel(r"$\epsilon_g / \mathrm K$")
 axes[0].set_xlim(3.5, 5.0)
 axes[0].set_ylim(120.0, 600)
-xyticks = 40
+xyticks = 61
 # ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
 ticks = np.arange(0., 1, 0.001)
 for sig in np.linspace(3.5, 5.0, xyticks):
-    for eps in np.linspace(120.0, 600, xyticks):
-        g1 = AttrDict({"sigma":(moldict[host].intr[0][1]+moldict[guest].intr[0][1])/2,
-                       "epsilon":(moldict[host].intr[0][0]*moldict[guest].intr[0][0])**0.5,
-                       "dimen":0})
-        g2 = AttrDict({"sigma":(moldict[host].intr[0][1]+sig)/2,
-                       "epsilon":(moldict[host].intr[0][0]*eps*8.314/1000)**0.5,
-                       "dimen":0})
-        phases, lastphase = DoubleClathrate(g1, g2, beta, pressure, ticks = ticks)
-        if lastphase == "CS1":
-            color = "lightgreen"
-        elif lastphase == "CS2":
-            color = "#4666ff"
-        else:
-            color = "brown"
-        # I-III-Iの場合を区別して描く。
-        if lastphase == "CS1" and "TS1" in phases and len(phases) == 2:
-            axes[0].plot(sig, eps, color="orange", marker=".")
-        else:
-            axes[0].plot(sig, eps, color=color, marker=markers[len(phases)])
-        print(sig, eps, phases, lastphase)
+    for epsK in np.linspace(120.0, 600, xyticks):
+        inter2 = AttrDict({"sig": (tip4pice.sig+sig)/2,
+                           "epsK": (tip4pice.epsK*epsK)**0.5})
+        phases, lastphase = DoubleClathrate(inter[guest], inter2, beta, pressure, ticks = ticks)
+        mark(sig, epsK, phases, lastphase, ax=axes[0])
 
-cities(ax=axes[0])
+cities(ax=axes[0], gases=gases)
 
 # Xeと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
 markers = {1:"o", 2:"+", 3:"^"}
-guest = "LJXE____"
+guest = "Xe"
 axes[1].set_xlabel(r"$\sigma_g / \mathrm\AA$")
 # axes[1].set_ylabel(r"\epsilon_g / K")
 axes[1].set_xlim(4.6, 5.0)
 axes[1].set_ylim(120.0, 600)
-xyticks = 40 # 60
+xyticks = 61 # 60
 # ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
 ticks = np.arange(0., 1, 0.001)
 for sig in np.linspace(4.6, 5.0, xyticks):
-    for eps in np.linspace(120.0, 600., xyticks):
-        g1 = AttrDict({"sigma":(moldict[host].intr[0][1]+moldict[guest].intr[0][1])/2,
-                       "epsilon":(moldict[host].intr[0][0]*moldict[guest].intr[0][0])**0.5,
-                       "dimen":0})
-        g2 = AttrDict({"sigma":(moldict[host].intr[0][1]+sig)/2,
-                       "epsilon":(moldict[host].intr[0][0]*eps*8.314/1000)**0.5,
-                       "dimen":0})
-        phases, lastphase = DoubleClathrate(g1, g2, beta, pressure, ticks = ticks)
-        if lastphase == "CS1":
-            color = "lightgreen"
-        elif lastphase == "CS2":
-            color = "#4666ff"
-        else:
-            color = "brown"
-        # I-III-Iの場合を区別して描く。
-        if lastphase == "CS1" and "TS1" in phases and len(phases) == 2:
-            axes[1].plot(sig, eps, color="orange", marker=".")
-        else:
-            axes[1].plot(sig, eps, color=color, marker=markers[len(phases)])
-        print(sig, eps, phases, lastphase)
+    for epsK in np.linspace(120.0, 600., xyticks):
+        inter2 = AttrDict({"sig": (tip4pice.sig+sig)/2,
+                           "epsK": (tip4pice.epsK*epsK)**0.5})
+        phases, lastphase = DoubleClathrate(inter[guest], inter2, beta, pressure, ticks = ticks)
+        mark(sig, epsK, phases, lastphase, ax=axes[1])
 
-cities(ax=axes[1])
+cities(ax=axes[1], gases=gases)
 plt.tight_layout()
 
 plt.show()
