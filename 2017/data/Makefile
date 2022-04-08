@@ -1,8 +1,8 @@
-BINPATH=../../../CageIntegral
+BINPATH=../CageIntegral
 me:
 	for mol in LJMEs2__ LJME____ LJMEs3__ LJMEs4__ LJMEs5__ LJMEe0__ LJMEe2__ \
 	LJAR____ LJXE____ LJET____ LJBR2___ LJCS2___ LJKR____ LJCO2___ EKABR2__ \
-	LJCF4___ HTCO2___ \
+	LJCF4___ HTCO2___ LJCO2HT_ LJNE____ HTET____ LJCO2HT_ \
 	CH2CL2__ CHCL3___ CH3CL___ CH3BR___ C2H4F2__ 	C2H5F___ 	C2HF5___ \
 		CCL2F2__	CCL3F___	CH2CLF__	CH2FCF3_	CH3CL___ \
 		CHCL2F__	CHCLF2__	CL2FCCH3	CLF2CCH3	PROPANE_ \

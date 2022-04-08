@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+numpy = "*"
 matplotlib = "*"
+attrdict = "*"
 
 [dev-packages]
-autopep8 = "*"
-genice2 = "*"
 
 [requires]
 python_version = "3.9"

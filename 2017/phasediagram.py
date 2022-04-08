@@ -274,7 +274,7 @@ pairs = (("LJME____", "LJET____"),
          ("LJXE____", "LJBR2___"))
 
 
-def DoubleClathrate(ticks=np.linspace(0.0, 1.0, 100)):
+def DoubleClathrate(me, et, ticks=np.linspace(0.0, 1.0, 100)):
     mol_me = moldict[me]
     stericterm_me = chempot.StericFix(temperatures, mol_me.mass, mol_me.symm, mol_me.moi)
     f_me = vdWP.EncagingFE(temperatures, me, stericterm_me)
@@ -317,9 +317,9 @@ def DoubleClathrate(ticks=np.linspace(0.0, 1.0, 100)):
 
 for me, et in pairs:
     ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
-    X, Y = DoubleClathrate(ticks)
+    X, Y = DoubleClathrate(me, et, ticks)
     plt.plot(X, Y, "-")
-    X, Y = DoubleClathrate(np.linspace(0.0, 1.0, 11))
+    X, Y = DoubleClathrate(me, et, np.linspace(0.0, 1.0, 11))
     plt.plot(X, Y, ".")
 
 

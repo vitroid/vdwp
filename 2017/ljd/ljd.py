@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def cellpotential(r, sigma, epsilon, z, R, a=0.0):
     """
@@ -16,12 +15,19 @@ def cellpotential(r, sigma, epsilon, z, R, a=0.0):
         11) / R) - sigma**6 / (R**5 * r) * (delta(4) + a * delta(5) / R))
     return ans
 
-def fvalue(R, sigma, epsilon, beta, z=20):
-    r = np.linspace(0,R,100)[1:99]
-    plt.plot(r, cellpotential(r, sigma, epsilon, z, R)*beta)
+def fvalue(Rz, sigma, epsilon, beta, plt=None):
+    r = np.linspace(0,max(Rz.keys()),100)
+    cp = np.zeros(100)
+    for R, z in Rz.items():
+        r1 = r[r<R]
+        r1 = r1[1:]
+        cp1 = cellpotential(r1, sigma, epsilon, z, R)
+        cp[:cp1.shape[0]] += cp1
+    if plt is not None:
+        plt.plot(r, cp*beta)
     # plt.plot(r, np.exp(-cellpotential(r, sigma, epsilon, z, R) * beta)*r**2)
     # print(z, np.trapz(np.exp(-beta * cellpotential(r, sigma, epsilon, z, R)) * r**2, dx=r[1]-r[0]))
-    return -np.log(4 * np.pi * np.trapz(np.exp(-beta * cellpotential(r, sigma, epsilon, z, R)) * r**2 * 1e-30, dx=r[1]-r[0])) / beta
+    return -np.log(4 * np.pi * np.trapz(np.exp(-beta * cp) * r**2 * 1e-30, dx=r[1]-r[0])) / beta
 
 
 # 2022-03-25とりあえず書いただけ。まだ使っていない。
