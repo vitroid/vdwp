@@ -5,8 +5,7 @@
 # 一般化相図上に、メタンを位置付ける。
 # 温度や圧力を変えた時に、点がどう動くかを見せる。
 
-import vdwp.vdWP as vdWP
-import vdwp.crystals as crystals
+from vdwp import vdWP, crystals, normalmode, general, cage
 import CageIntegral.physconst as pc
 import CageIntegral.molecule as molecule
 import CageIntegral.chempot as chempot
@@ -25,23 +24,6 @@ logger.debug("Debug mode.")
 
 figure = plt.figure()
 
-
-def drawLine(A, B, C):
-    """
-    Ax + By + C = 0
-    """
-    if A == 0:
-        X = np.linspace(-0.4, 0.6, 100)
-        Y = np.zeros_like(X) - C / B
-        plt.plot(X, Y)
-    elif B == 0:
-        Y = np.linspace(-0.4, 0.6, 100)
-        X = np.zeros_like(Y) - C / A
-        plt.plot(X, Y)
-    else:
-        X = np.linspace(-0.4, 0.6, 100)
-        Y = (-C - A * X) / B
-        plt.plot(X, Y)
 
 # def elimempty(values):
 #   newvalues = []
@@ -110,7 +92,7 @@ moldict = LoadMoleculeDict("data/DEFR")
 
 # User variables
 pressure = 101325.00 * 50  # Pa
-temperatures = np.array(np.arange(270,301,10))
+temperatures = np.array(np.arange(270, 301, 10))
 guest = "LJME____"
 host = "TIP4PICE"
 structures = ["CS2", "CS1", "HS1", "TS1"]  # , "TS1", "HS1"]
@@ -143,7 +125,7 @@ for structure in structures:
     logger.info(
         f"Calculating chemical potential of empty clathrate {structure}...")
     mu_e[structure] = crystals.U_e[structure] + \
-        vdWP.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+        normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
 
 
 plt.xlim(-0.4, 0.6)
@@ -161,11 +143,11 @@ for t, temperature in enumerate(temperatures):
         A = crystals.ratios[s1][0] - crystals.ratios[s2][0]
         B = crystals.ratios[s1][1] - crystals.ratios[s2][1]
         C = mu_e[s1][t] - mu_e[s2][t]
-        drawLine(A, B, C)
+        general.drawLine(A, B, C)
 
 ####### cage-dependent terms ###########################################
 
-f_c = vdWP.EncagingFE(temperatures, guest, stericterm)
+f_c = cage.EncagingFE(temperatures, guest, stericterm)
 Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g, structures)
 
 # position of methane
@@ -180,10 +162,10 @@ plt.plot(X, Y, "-")
 # 2. When the pressure changes.
 temperatures = 273.15
 stericterm = chempot.StericFix(temperatures, mol.mass, mol.symm, mol.moi)
-f_c = vdWP.EncagingFE(temperatures, guest, stericterm)
+f_c = cage.EncagingFE(temperatures, guest, stericterm)
 
-for p0 in (50,500,5000,50000,500000):
-    pressure = p0*101326
+for p0 in (50, 500, 5000, 50000, 500000):
+    pressure = p0 * 101326
     mu_g = (
         chempot.chempot(temperatures, pressure) +
         chempot.IntegrationFixMinus(temperatures, mol.dimen) + stericterm)
@@ -196,7 +178,7 @@ for p0 in (50,500,5000,50000,500000):
 
 # 3. Meのsigmaを調節する。
 temperatures = 273.15
-pressure = 50*101326
+pressure = 50 * 101326
 stericterm = chempot.StericFix(temperatures, mol.mass, mol.symm, mol.moi)
 mu_g = (
     chempot.chempot(temperatures, pressure) +
@@ -205,7 +187,7 @@ mu_g = (
 X = []
 Y = []
 for guest in ("LJMEs2__", "LJMEs3__", "LJMEs4__", "LJMEs5__"):
-    f_c = vdWP.EncagingFE(temperatures, guest, stericterm)
+    f_c = cage.EncagingFE(temperatures, guest, stericterm)
     Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g, structures)
 
     x = Deltamu["CS1"] - Deltamu["HS1"]
@@ -227,7 +209,8 @@ LJME____ LJMEs3__ LJMEs4__ LJMEs5__ LJMEe0__ LJMEe2__ \
 		ISOBUTAN
         """.split()
 
-for guest in guests: #("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___", "LJPR____", "LJKR____", "LJCO2___", "EKABR2__"):
+# ("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___", "LJPR____", "LJKR____", "LJCO2___", "EKABR2__"):
+for guest in guests:
     mol = moldict[guest]
     # 分子が変わると、質量が変わる。ただし、この項はΔμの差には効かないので、計算しなくてもいい。
     stericterm = chempot.StericFix(temperatures, mol.mass, mol.symm, mol.moi)
@@ -236,7 +219,7 @@ for guest in guests: #("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___
         chempot.chempot(temperatures, pressure) +
         chempot.IntegrationFixMinus(temperatures, mol.dimen) + stericterm)
     # ゲスト分子がケージに閉じこめられた場合の自由エネルギー(化学ポテンシャル)
-    f_c = vdWP.EncagingFE(temperatures, guest, stericterm)
+    f_c = cage.EncagingFE(temperatures, guest, stericterm)
     # 混合物の場合は?
     Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g, structures)
 
@@ -244,17 +227,16 @@ for guest in guests: #("LJAR____", "LJME____", "LJXE____", "LJET____", "LJBR2___
     y = Deltamu["CS2"] - Deltamu["HS1"]
     plt.plot(x, y, "o")
 
-    plt.annotate(mol.name, # this is the text
-                 (x,y), # these are the coordinates to position the label
-                 textcoords="offset points", # how to position the text
-                 xytext=(0,10), # distance from text to points (x,y)
-                 ha='center') # horizontal alignment can be left, right or center
-
+    plt.annotate(mol.name,  # this is the text
+                 (x, y),  # these are the coordinates to position the label
+                 textcoords="offset points",  # how to position the text
+                 xytext=(0, 10),  # distance from text to points (x,y)
+                 ha='center')  # horizontal alignment can be left, right or center
 
 
 # 5. Mixture of methane and ethane.
 temperatures = 273.15
-p0 = 101326*50 # 50 bar
+p0 = 101326 * 50  # 50 bar
 
 
 pairs = (("LJME____", "LJET____"),
@@ -276,52 +258,77 @@ pairs = (("LJME____", "LJET____"),
 
 def DoubleClathrate(me, et, ticks=np.linspace(0.0, 1.0, 100)):
     mol_me = moldict[me]
-    stericterm_me = chempot.StericFix(temperatures, mol_me.mass, mol_me.symm, mol_me.moi)
-    f_me = vdWP.EncagingFE(temperatures, me, stericterm_me)
+    stericterm_me = chempot.StericFix(
+        temperatures, mol_me.mass, mol_me.symm, mol_me.moi)
+    f_me = cage.EncagingFE(temperatures, me, stericterm_me)
 
     mol_et = moldict[et]
-    stericterm_et = chempot.StericFix(temperatures, mol_et.mass, mol_et.symm, mol_et.moi)
-    f_et = vdWP.EncagingFE(temperatures, et, stericterm_et)
+    stericterm_et = chempot.StericFix(
+        temperatures, mol_et.mass, mol_et.symm, mol_et.moi)
+    f_et = cage.EncagingFE(temperatures, et, stericterm_et)
 
     X = []
     Y = []
     for r in ticks:
-        p_me = (1-r)*p0
-        p_et = r*p0
+        p_me = (1 - r) * p0
+        p_et = r * p0
 
         if p_me == 0:
             mu_et = (
-                chempot.chempot(temperatures, p_et) +
-                chempot.IntegrationFixMinus(temperatures, mol_et.dimen) + stericterm_et)
-            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_et, mu_et, structures)
+                chempot.chempot(
+                    temperatures,
+                    p_et) +
+                chempot.IntegrationFixMinus(
+                    temperatures,
+                    mol_et.dimen) +
+                stericterm_et)
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, f_et, mu_et, structures)
         elif p_et == 0:
             mu_me = (
-                chempot.chempot(temperatures, p_me) +
-                chempot.IntegrationFixMinus(temperatures, mol_me.dimen) + stericterm_me)
-            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_me, mu_me, structures)
+                chempot.chempot(
+                    temperatures,
+                    p_me) +
+                chempot.IntegrationFixMinus(
+                    temperatures,
+                    mol_me.dimen) +
+                stericterm_me)
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, f_me, mu_me, structures)
         else:
             mu_me = (
-                chempot.chempot(temperatures, p_me) +
-                chempot.IntegrationFixMinus(temperatures, mol_me.dimen) + stericterm_me)
+                chempot.chempot(
+                    temperatures,
+                    p_me) +
+                chempot.IntegrationFixMinus(
+                    temperatures,
+                    mol_me.dimen) +
+                stericterm_me)
             mu_et = (
-                chempot.chempot(temperatures, p_et) +
-                chempot.IntegrationFixMinus(temperatures, mol_et.dimen) + stericterm_et)
-            Deltamu = vdWP.ChemPotByOccupation(temperatures, (f_me, f_et), (mu_me, mu_et), structures)
+                chempot.chempot(
+                    temperatures,
+                    p_et) +
+                chempot.IntegrationFixMinus(
+                    temperatures,
+                    mol_et.dimen) +
+                stericterm_et)
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, (f_me, f_et), (mu_me, mu_et), structures)
 
         x = Deltamu["CS1"] - Deltamu["HS1"]
         y = Deltamu["CS2"] - Deltamu["HS1"]
         X.append(x)
         Y.append(y)
-    return X,Y
+    return X, Y
 
 
 for me, et in pairs:
-    ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
+    ticks = np.concatenate(
+        [np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
     X, Y = DoubleClathrate(me, et, ticks)
     plt.plot(X, Y, "-")
     X, Y = DoubleClathrate(me, et, np.linspace(0.0, 1.0, 11))
     plt.plot(X, Y, ".")
-
 
 
 plt.show()

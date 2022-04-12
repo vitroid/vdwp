@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# phasediagram.pyからの変更点:
+# ケージ積分の代わりにljdを用いる。
+# 必然的に、単原子モデル以外は扱えない。
+# 相境界の条件は50気圧、273 Kのみにする。
+# moldictの利用をやめる。
+
+import vdwp.vdWP as vdWP
+import vdwp.crystals as crystals
+from vdwp.physconst import NkB, NA
+import vdwp.normalmode as normalmode
+# import CageIntegral.molecule as molecule
+import vdwp.chempot as chempot
+from ljd.ljd import fvalue
+# from general import drawLine
+from LJparam import gases, inter, tip4pice
+
+import numpy as np
+# import vdwp.interpolate as ip
+import matplotlib.pyplot as plt
+# from itertools import combinations
+from logging import getLogger, DEBUG, INFO, basicConfig
+from attrdict import AttrDict
+
+# basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
+basicConfig(level=INFO, format="%(levelname)s %(message)s")
+logger = getLogger()
+logger.debug("Debug mode.")
+
+
+def determine_phase(mu_e, Deltamu, structures):
+    mumin = 0
+    stmin = None
+    for s in structures:
+        if mu_e[s] + Deltamu[s] < mumin:
+            mumin = mu_e[s] + Deltamu[s]
+            stmin = s
+    return stmin
+
+
+# 変数の命名則
+# f, mu: free energy/chemical potential
+#h    : enthalpy
+#
+# _w   : of water
+# _i   : of ice
+# _e   : of the empty lattice
+# _f   : of the filled lattice
+# _g   : of the guest
+# _c   : in the cage
+#
+
+
+def MultipleClathrate(gases, pressures, temperatures, structures):
+    beta = 1 / (NkB * temperatures)
+    f = []
+    mu = []
+    for gas, pressure in zip(gases, pressures):
+        if pressure > 0.0:
+            mu.append(
+                chempot.chempot(temperatures, pressure) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
+            ff = dict()
+            for cage, R in radii.items():
+                # sigma and epsilon must be the intermolecular ones.
+                ff[cage] = fvalue({R: nmemb[cage]}, gas.sig,
+                                  gas.epsK * 8.314 / 1000, beta)
+            f.append(ff)
+    Deltamu = vdWP.ChemPotByOccupation(temperatures, f, mu, structures)
+
+    X = Deltamu["CS1"] - Deltamu["HS1"]
+    Y = Deltamu["CS2"] - Deltamu["HS1"]
+    return X, Y
+
+
+radii = {
+    12: 3.894043995956962,
+    14: 4.3269124645840025,
+    15: 4.479370276434863,
+    16: 4.694779956202102}
+nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
+
+# User variables
+pressure = 101325.00 * 50  # Pa
+temperatures = 273.15
+beta = 1.0 / (NkB * temperatures)
+
+
+# guest = "Methane"
+structures = ["CS2", "CS1", "HS1", "TS1"]  # , "TS1", "HS1"]
+
+####### chemical potential of gas ######################################
+stericterm = chempot.StericFix(temperatures, mass=1.0, symm=1, moi=(0, 0, 0))
+
+mu_g = (
+    chempot.chempot(temperatures, pressure) +
+    chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
+
+####### structure-dependent terms ######################################
+
+# for hydrate structure types
+mu_e = dict()
+for structure in structures:
+    logger.info(
+        f"Calculating chemical potential of empty clathrate {structure}...")
+    mu_e[structure] = crystals.U_e[structure] + \
+        normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+
+# plt.rcParams['text.usetex'] = True
+plt.rcParams["font.size"] = 14
+plt.rcParams["font.family"] = "sans-serif"
+
+
+def DoubleClathrate(
+        g1,
+        g2,
+        beta,
+        pressure,
+        ticks=np.linspace(
+            0.0,
+            1.0,
+            100),
+        terminate=None):
+    f1 = dict()
+    f2 = dict()
+    for cage, R in radii.items():
+        # sigma and epsilon must be the intermolecular ones.
+        f1[cage] = fvalue({R: nmemb[cage]}, g1.sig,
+                          g1.epsK * 8.314 / 1000, beta)
+        f2[cage] = fvalue({R: nmemb[cage]}, g2.sig,
+                          g2.epsK * 8.314 / 1000, beta)
+
+    phases = []
+    for r in ticks:
+        p1 = (1 - r) * pressure
+        p2 = r * pressure
+
+        if p1 == 0:
+            mu2 = (
+                chempot.chempot(temperatures, p2) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, f2, mu2, structures)
+        elif p2 == 0:
+            mu1 = (
+                chempot.chempot(temperatures, p1) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, f1, mu1, structures)
+        else:
+            mu1 = (
+                chempot.chempot(temperatures, p1) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
+            mu2 = (
+                chempot.chempot(temperatures, p2) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0))
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, (f1, f2), (mu1, mu2), structures)
+
+        phase = determine_phase(mu_e, Deltamu, structures)
+        phases.append(phase)
+        if terminate == phase:
+            break
+    return phases, phase
+
+
+def mark(sig, epsK, phases, lastphase, ax):
+    markers = {1: "o", 2: "+", 3: "^"}
+    if lastphase == "CS1":
+        color = "lightgreen"
+    elif lastphase == "CS2":
+        color = "#88f"
+    else:
+        color = "brown"
+    # I-III-Iの場合を区別して描く。(実際には見付かっていない)
+    if lastphase == "CS1" and "TS1" in phases and len(phases) == 2:
+        ax.plot(sig, epsK, color="orange", marker=".")
+    else:
+        marker = markers[len(phases)]
+        if len(phases) == 3 and lastphase == "CS1":
+            color = "#0c0"  # slightly darker triangle
+        ax.plot(sig, epsK, color=color, marker=marker)
+        if len(phases) == 3:
+            print(sig, epsK, phases, lastphase)
+
+
+def cities(ax, gases):
+    # 地図の上に、都市(分子)を描く。
+    for name, gas in gases.items():
+        sig = gas.sig
+        eps = gas.epsK
+        ax.plot(sig, eps, "ok")
+        if name in ("CO2", "n-Butane"):
+            ha = "right"
+            xytext = (-5, 0)
+        elif name == "N2O":
+            ha = "left"
+            xytext = (5, 0)
+        else:
+            ha = "center"
+            xytext = (0, 5)
+        ax.annotate(gas.TeX,  # this is the text
+                    (sig, eps),  # these are the coordinates to position the label
+                    textcoords="offset points",  # how to position the text
+                    xytext=xytext,  # distance from text to points (x,y)
+                    ha=ha)  # horizontal alignment can be left, right or center
+
+
+# plt.imshow(Z, extent=[0, 5, 0, 5], origin='lower',
+#            cmap='RdGy', alpha=0.5)
+# plt.colorbar()
+
+# plt.show()
+fig, axes = plt.subplots(
+    nrows=1, ncols=3, figsize=(
+        12, 5), sharey=True, gridspec_kw={
+            'wspace': 0})
+xyticks = 3
+
+# Br2と混合すると、IIが生じる濃度。
+ax = axes[0]
+guest = "Br2"
+ax.set_xlabel(r"$\sigma_g / \AA$")
+ax.set_ylabel(r"$\epsilon_g / K$")
+ax.set_xlim(3.45, 5.1)
+ax.set_ylim(120.0, 600)
+# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
+ticks = np.concatenate(
+    [np.array([0.0]), np.logspace(-4, 0.0, 300)])  # 1e-4 .. 1e0
+x = np.linspace(3.45, 5.1, xyticks * 2)
+y = np.linspace(120.0, 600, xyticks * 2)
+X, Y = np.meshgrid(x, y)
+Z = np.zeros_like(X)
+for ix, sig in enumerate(x):
+    for iy, epsK in enumerate(y):
+        inter2 = AttrDict({"sig": (tip4pice.sig + sig) / 2,
+                           "epsK": (tip4pice.epsK * epsK)**0.5})
+        phases, lastphase = DoubleClathrate(
+            inter2, inter[guest], beta, pressure, ticks=ticks, terminate="CS2")
+        z = 1.0
+        for i, phase in enumerate(phases):
+            if phase == "CS2":
+                z = ticks[i]
+                break
+        Z[iy, ix] = z
+        firstphase = phases[0]
+        if firstphase == "CS1":
+            color = "lightgreen"
+        elif firstphase == "CS2":
+            color = "#aaf"
+        else:
+            color = "brown"
+        ax.plot(sig, epsK, ".", color=color)
+        # print(sig, epsK, X[iy,ix], Y[iy,ix], z)
+        # mark(sig, epsK, phases, lastphase, ax=ax)
+    # assert False
+contours = ax.contour(
+    X,
+    Y,
+    Z,
+    levels=[
+        0.0001,
+        0.001,
+        0.01,
+        0.1],
+    colors='black')
+ax.clabel(contours, inline=True, fontsize=8)
+cities(ax=ax, gases=gases)
+ax.annotate("(a) X + Br$_2$",  # this is the text
+            xy=(0.9, 0.9),  # these are the coordinates to position the label
+            xycoords="axes fraction",
+            fontsize=24, ha="right")
+
+# Meと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
+ax = axes[1]
+guest = "Methane"
+ax.set_xlabel(r"$\sigma_g / \AA$")
+# ax.set_ylabel(r"$\epsilon_g / \mathrm K$")
+ax.set_xlim(3.45, 5.1)
+ax.set_ylim(120.0, 600)
+# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
+ticks = np.arange(0., 1, 0.001)
+for sig in np.linspace(3.45, 5.1, xyticks):
+    for epsK in np.linspace(120.0, 600, xyticks):
+        inter2 = AttrDict({"sig": (tip4pice.sig + sig) / 2,
+                           "epsK": (tip4pice.epsK * epsK)**0.5})
+        phases, lastphase = DoubleClathrate(
+            inter[guest], inter2, beta, pressure, ticks=ticks)
+        mark(sig, epsK, set(phases), lastphase, ax=ax)
+
+cities(ax=ax, gases=gases)
+ax.annotate("(b) Me + X",  # this is the text
+            xy=(0.9, 0.9),  # these are the coordinates to position the label
+            xycoords="axes fraction",
+            fontsize=24, ha="right")
+
+# Xeと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
+ax = axes[2]
+markers = {1: "o", 2: "+", 3: "^"}
+guest = "Xe"
+ax.set_xlabel(r"$\sigma_g / \AA$")
+# ax.set_ylabel(r"\epsilon_g / K")
+ax.set_xlim(4.55, 5.05)
+ax.set_ylim(120.0, 600)
+# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
+ticks = np.arange(0., 1, 0.001)
+for sig in np.linspace(4.55, 5.05, xyticks):
+    for epsK in np.linspace(120.0, 600., xyticks):
+        inter2 = AttrDict({"sig": (tip4pice.sig + sig) / 2,
+                           "epsK": (tip4pice.epsK * epsK)**0.5})
+        phases, lastphase = DoubleClathrate(
+            inter[guest], inter2, beta, pressure, ticks=ticks)
+        mark(sig, epsK, set(phases), lastphase, ax=ax)
+
+cities(ax=ax, gases=gases)
+ax.annotate("(c) Xe + X",  # this is the text
+            xy=(0.9, 0.9),  # these are the coordinates to position the label
+            xycoords="axes fraction",
+            fontsize=24, ha="right")
+
+
+plt.tight_layout()
+
+plt.show()
+fig.savefig("Figure4.pdf")
+fig.savefig("Figure4.png")
