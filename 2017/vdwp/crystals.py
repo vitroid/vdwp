@@ -1,4 +1,6 @@
 #Constants
+names = ["CS1", "CS2", "TS1", "HS1"]
+aliases = {"CS1":"sI", "CS2":"sII", "TS1":"sIII", "HS1":"sIV"}
 cage_components = {"CS2" : (136.,{16:8.,12:16.}), #cage 0 is Nw
                    "CS1"  : (46., {12:2.,14:6.}),
                    "TS1"  : (172, {12:10, 14:16, 15:4}),
