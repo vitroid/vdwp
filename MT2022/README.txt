@@ -1,7 +1,3 @@
-installed
+# MT2022
 
-Python
-//sudo pip install reportlab
-sudo pip install matplotlib
-
-brew install freetype # required for matplotlib
+Codes to reproduce the Figures in MT2022.
