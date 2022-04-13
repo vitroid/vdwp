@@ -217,8 +217,9 @@ fig, axes = plt.subplots(
     nrows=1, ncols=3, figsize=(
         12, 5), sharey=True, gridspec_kw={
             'wspace': 0})
-xyticks = 3
+xyticks = 31
 
+# (a)
 # Br2と混合すると、IIが生じる濃度。
 ax = axes[0]
 guest = "Br2"
@@ -245,14 +246,14 @@ for ix, sig in enumerate(x):
                 z = ticks[i]
                 break
         Z[iy, ix] = z
-        firstphase = phases[0]
-        if firstphase == "CS1":
-            color = "lightgreen"
-        elif firstphase == "CS2":
-            color = "#aaf"
-        else:
-            color = "brown"
-        ax.plot(sig, epsK, ".", color=color)
+        # firstphase = phases[0]
+        # if firstphase == "CS1":
+        #     color = "lightgreen"
+        # elif firstphase == "CS2":
+        #     color = "#aaf"
+        # else:
+        #     color = "brown"
+        # ax.plot(sig, epsK, ".", color=color)
         # print(sig, epsK, X[iy,ix], Y[iy,ix], z)
         # mark(sig, epsK, phases, lastphase, ax=ax)
     # assert False
@@ -265,14 +266,30 @@ contours = ax.contour(
         0.001,
         0.01,
         0.1],
-    colors='black')
+    colors='black', linewidths=1)
 ax.clabel(contours, inline=True, fontsize=8)
+contours = ax.contour(
+    X,
+    Y,
+    Z,
+    levels=[0.9999,],
+    colors='black',
+    linestyles="dashed")
+
+contours = ax.contour(
+    X,
+    Y,
+    Z,
+    levels=[0.0,],
+    colors='black',
+    linewidths=2)
 cities(ax=ax, gases=gases)
 ax.annotate("(a) X + Br$_2$",  # this is the text
             xy=(0.9, 0.9),  # these are the coordinates to position the label
             xycoords="axes fraction",
             fontsize=24, ha="right")
 
+# (b)
 # Meと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
 ax = axes[1]
 guest = "Methane"
@@ -296,6 +313,7 @@ ax.annotate("(b) Me + X",  # this is the text
             xycoords="axes fraction",
             fontsize=24, ha="right")
 
+# (c)
 # Xeと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
 ax = axes[2]
 markers = {1: "o", 2: "+", 3: "^"}

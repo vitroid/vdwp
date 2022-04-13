@@ -16,10 +16,13 @@ Br2 4.933 488 $\\mathrm{Br}_2$
 CO2 4.486 189.0 $\\mathrm{CO}_2$
 CS2 4.438 488 $\\mathrm{CS_2}$
 N2O 4.59 189 $\\mathrm{N_2O}$
-CF4 4.70 152.5 $\\mathrm{CF_4}$
 n-Butane 4.997 410 $n\\mathrm{-Butane}$
 cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$
 """.splitlines()
+
+# Hirschfelder's parameters for cC3H6 is wierd.
+# CF4 fails to reproduce the phase. 
+# CF4 4.70 152.5 $\\mathrm{CF_4}$ 
 
 tip4pice = AttrDict({"sig": 3.1668, "epsK": 106.1})
 

@@ -7,14 +7,10 @@
 # 相境界の条件は50気圧、273 Kのみにする。
 # moldictの利用をやめる。
 
-import vdwp.vdWP as vdWP
-import vdwp.crystals as crystals
+from vdwp import vdWP, crystals, normalmode, general, chempot
 from vdwp.physconst import NkB, NA
-import vdwp.normalmode as normalmode
 # import CageIntegral.molecule as molecule
-import vdwp.chempot as chempot
 from ljd.ljd import fvalue
-from general import drawLine
 from LJparam import gases, inter
 
 import numpy as np
@@ -131,7 +127,7 @@ for s1, s2 in combinations(crystals.names, 2):
     A = crystals.ratios[s1][0] - crystals.ratios[s2][0]
     B = crystals.ratios[s1][1] - crystals.ratios[s2][1]
     C = mu_e[s1] - mu_e[s2]
-    drawLine(A, B, C, symbol="-k")
+    general.drawLine(A, B, C, style="-k")
 
 # manually labelled
 plt.annotate("I",  # this is the text
@@ -213,7 +209,7 @@ for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
 
 
 for a, b in [("Ethane", "Br2"), ("CO2", "Br2"),
-             ("N2O", "Br2"), ("C2H4", "Br2")]:
+             ("N2O", "Br2"), ("C2H4", "Br2"), ("cC3H6", "Br2")]:
     pressures = np.zeros(2)
     X = []
     Y = []
@@ -224,19 +220,11 @@ for a, b in [("Ethane", "Br2"), ("CO2", "Br2"),
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
         Y.append(y)
-    plt.plot(X, Y, "-k", linewidth=0.5)
+    if a == "cC3H6":
+        plt.plot(X, Y, "--k", linewidth=0.5, dashes=(10,5))
+    else:
+        plt.plot(X, Y, "-k", linewidth=0.5)
 
-
-# pressures = np.zeros(3)
-# for pressures[0] in np.linspace(0.0, 45.0, 10):
-#     X = []
-#     Y = []
-#     for pressures[2] in np.concatenate([np.linspace(0.000, 0.99, 1000), np.linspace(1.0, 50 - pressures[0],100)]):
-#         pressures[1] = 50.0 - pressures[0] - pressures[2]
-#         x,y = MultipleClathrate(gases, pressures*101326, temperatures, structures)
-#         X.append(x)
-#         Y.append(y)
-#     plt.plot(X,Y, "-")
 
 plt.tight_layout()
 plt.show()
