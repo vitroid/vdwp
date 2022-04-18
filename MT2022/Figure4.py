@@ -208,6 +208,45 @@ def cities(ax, gases):
                     ha=ha)  # horizontal alignment can be left, right or center
 
 
+def contourfill(ax, X, Y, Z, Z2):
+    #Phases of the 2nd component
+    contours = ax.contour(
+        X,
+        Y,
+        Z2,
+        levels=[1.5, 2.5],
+        colors='black',
+        linewidths=2)
+    #Number of phases by mixing
+    contours = ax.contour(
+        X,
+        Y,
+        Z,
+        levels=[1.5, 2.5],
+        colors='black',
+        linewidths=1)
+    cs = ax.contourf(
+        X,
+        Y,
+        Z2,
+        levels=[1.0, 2.0, 3.0],
+        colors=['#8f8', '#ccf', '#fcc'],
+        extend='min')
+    # for collection in cs.collections:
+    #     collection.set_linewidth(0.)
+    #     collection.set_edgecolor('#ccc')
+    cs = ax.contourf(
+        X,
+        Y,
+        Z,
+        levels=[0.0, 1.0, 2.0],
+        hatches=['', '.', '//'],
+        colors='none',
+        extend='max')
+    for collection in cs.collections:
+        collection.set_linewidth(0.)
+        collection.set_edgecolor('white')
+
 # plt.imshow(Z, extent=[0, 5, 0, 5], origin='lower',
 #            cmap='RdGy', alpha=0.5)
 # plt.colorbar()
@@ -217,7 +256,7 @@ fig, axes = plt.subplots(
     nrows=1, ncols=3, figsize=(
         12, 5), sharey=True, gridspec_kw={
             'wspace': 0})
-xyticks = 31
+xyticks = 40
 
 # (a)
 # Br2と混合すると、IIが生じる濃度。
@@ -246,17 +285,7 @@ for ix, sig in enumerate(x):
                 z = ticks[i]
                 break
         Z[iy, ix] = z
-        # firstphase = phases[0]
-        # if firstphase == "CS1":
-        #     color = "lightgreen"
-        # elif firstphase == "CS2":
-        #     color = "#aaf"
-        # else:
-        #     color = "brown"
-        # ax.plot(sig, epsK, ".", color=color)
-        # print(sig, epsK, X[iy,ix], Y[iy,ix], z)
-        # mark(sig, epsK, phases, lastphase, ax=ax)
-    # assert False
+
 contours = ax.contour(
     X,
     Y,
@@ -283,35 +312,61 @@ contours = ax.contour(
     levels=[0.0,],
     colors='black',
     linewidths=2)
+
+cs = ax.contourf(
+    X,
+    Y,
+    Z,
+    levels=[0.0, 0.0001, 0.001, 0.01, 0.1, 0.9999, 2.0],
+    colors=['#ccf', '#dfd', '#cfc', '#bfb', '#afa', '#9f9', '#fcc'], 
+    extend='min')
+
 cities(ax=ax, gases=gases)
-ax.annotate("(a) X + Br$_2$",  # this is the text
-            xy=(0.9, 0.9),  # these are the coordinates to position the label
+
+ax.annotate("(a) X + Q",  # this is the text
+            xy=(0.8, 0.92),  # these are the coordinates to position the label
             xycoords="axes fraction",
-            fontsize=24, ha="right")
+            fontsize=20, ha="right")
+
+
 
 # (b)
 # Meと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
 ax = axes[1]
 guest = "Methane"
 ax.set_xlabel(r"$\sigma_g / \AA$")
-# ax.set_ylabel(r"$\epsilon_g / \mathrm K$")
 ax.set_xlim(3.45, 5.1)
 ax.set_ylim(120.0, 600)
 # ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
-ticks = np.arange(0., 1, 0.001)
-for sig in np.linspace(3.45, 5.1, xyticks):
-    for epsK in np.linspace(120.0, 600, xyticks):
+# ticks = np.arange(0., 1, 0.001)
+x = np.linspace(3.45, 5.1, xyticks * 2)
+y = np.linspace(120.0, 600, xyticks * 2)
+X, Y = np.meshgrid(x, y)
+Z = np.zeros_like(X)
+Z2 = np.zeros_like(X)
+for ix, sig in enumerate(x):
+    for iy, epsK in enumerate(y):
         inter2 = AttrDict({"sig": (tip4pice.sig + sig) / 2,
                            "epsK": (tip4pice.epsK * epsK)**0.5})
         phases, lastphase = DoubleClathrate(
             inter[guest], inter2, beta, pressure, ticks=ticks)
-        mark(sig, epsK, set(phases), lastphase, ax=ax)
-
+        Z[iy, ix] = len(set(phases))
+        if lastphase == "CS1":
+            z = 1
+        elif lastphase == "CS2":
+            z = 2
+        else:
+            z = 3
+        Z2[iy, ix] = z
+        # mark(sig, epsK, set(phases), lastphase, ax=ax)
 cities(ax=ax, gases=gases)
+contourfill(ax, X, Y, Z, Z2)
 ax.annotate("(b) Me + X",  # this is the text
-            xy=(0.9, 0.9),  # these are the coordinates to position the label
+            xy=(0.6, 0.92),  # these are the coordinates to position the label
             xycoords="axes fraction",
-            fontsize=24, ha="right")
+            fontsize=20, ha="right")
+
+
 
 # (c)
 # Xeと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
@@ -323,20 +378,38 @@ ax.set_xlabel(r"$\sigma_g / \AA$")
 ax.set_xlim(4.55, 5.05)
 ax.set_ylim(120.0, 600)
 # ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
-ticks = np.arange(0., 1, 0.001)
-for sig in np.linspace(4.55, 5.05, xyticks):
-    for epsK in np.linspace(120.0, 600., xyticks):
+# ticks = np.arange(0., 1, 0.001)
+x = np.linspace(4.55, 5.05, xyticks * 2)
+y = np.linspace(120.0, 600, xyticks * 2)
+X, Y = np.meshgrid(x, y)
+Z = np.zeros_like(X)
+Z2 = np.zeros_like(X)
+for ix, sig in enumerate(x):
+    for iy, epsK in enumerate(y):
         inter2 = AttrDict({"sig": (tip4pice.sig + sig) / 2,
                            "epsK": (tip4pice.epsK * epsK)**0.5})
         phases, lastphase = DoubleClathrate(
             inter[guest], inter2, beta, pressure, ticks=ticks)
-        mark(sig, epsK, set(phases), lastphase, ax=ax)
+        # mark(sig, epsK, set(phases), lastphase, ax=ax)
+        Z[iy, ix] = len(set(phases))
+        if lastphase == "CS1":
+            z = 1
+        elif lastphase == "CS2":
+            z = 2
+        else:
+            z = 3
+        Z2[iy, ix] = z
+        # mark(sig, epsK, set(phases), lastphase, ax=ax)
+# im = ax.imshow(Z, # interpolation='bilinear', origin='lower',
+#                cmap=cm.gray, extent=(4.55, 5.05, 120.0, 600.0))
+
 
 cities(ax=ax, gases=gases)
+contourfill(ax, X, Y, Z, Z2)
 ax.annotate("(c) Xe + X",  # this is the text
-            xy=(0.9, 0.9),  # these are the coordinates to position the label
+            xy=(0.4, 0.92),  # these are the coordinates to position the label
             xycoords="axes fraction",
-            fontsize=24, ha="right")
+            fontsize=20, ha="right")
 
 
 plt.tight_layout()

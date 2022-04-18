@@ -12,15 +12,20 @@ Ne 2.749 35.6
 Ar 3.405 119.8
 Kr 3.60 171.0
 Xe 4.047 231.0
-Br2 4.933 488 $\\mathrm{Br}_2$
+Br2 4.83 550 Q
 CO2 4.486 189.0 $\\mathrm{CO}_2$
 CS2 4.438 488 $\\mathrm{CS_2}$
 N2O 4.59 189 $\\mathrm{N_2O}$
 n-Butane 4.997 410 $n\\mathrm{-Butane}$
-cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$
+# cC3H6 4.811 208        # Hirschfelder
+cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$ # from CP
+# cProp4 4.80 285       # manually modified Hirschfelder
 """.splitlines()
 
-# Hirschfelder's parameters for cC3H6 is wierd.
+# Bromine that becomes sIII at 50 bar
+# Br2 4.933 488 $\\mathrm{Br}_2$
+# cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$
+
 # CF4 fails to reproduce the phase. 
 # CF4 4.70 152.5 $\\mathrm{CF_4}$ 
 
@@ -29,6 +34,9 @@ tip4pice = AttrDict({"sig": 3.1668, "epsK": 106.1})
 gases = dict()
 inter = dict()
 for gas in gastable:
+    i = gas.find("#")
+    if i >= 0:
+        gas = gas[:i]
     cols = gas.rstrip().split(maxsplit=3)
     if len(cols) == 0:
         continue
