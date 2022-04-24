@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 def drawLine(A, B, C, style=".", ax=plt, xtick=np.linspace(-0.4, 0.6, 100),
-             ytick=np.linspace(-0.4, 0.6, 100)):
+             ytick=np.linspace(-0.4, 0.7, 100)):
     """
     Ax + By + C = 0
     """

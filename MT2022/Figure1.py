@@ -14,7 +14,7 @@ from vdwp.physconst import NkB, NA
 # import CageIntegral.molecule as molecule
 import vdwp.chempot as chempot
 # from ljd.ljd import fvalue
-from general import drawLine
+from vdwp.general import drawLine
 
 import numpy as np
 # import vdwp.interpolate as ip
@@ -73,7 +73,7 @@ for structure in crystals.names:
         f"Calculating chemical potential of empty clathrate {structure}...")
     mu_e[structure] = crystals.U_e[structure] + \
         normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
-
+# mu_e = crystals.mu_e
 
 for s1, s2 in combinations(crystals.names, 2):
     # 共存線の方程式
@@ -84,7 +84,7 @@ for s1, s2 in combinations(crystals.names, 2):
     A = crystals.ratios[s1][0] - crystals.ratios[s2][0]
     B = crystals.ratios[s1][1] - crystals.ratios[s2][1]
     C = mu_e[s1] - mu_e[s2]
-    drawLine(A, B, C, symbol="-k")
+    drawLine(A, B, C, style="-k")
 
 # manually labelled
 plt.annotate("I (CS-I)",  # this is the text

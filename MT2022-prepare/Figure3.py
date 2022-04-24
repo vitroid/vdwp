@@ -100,6 +100,7 @@ for structure in crystals.names:
 plt.rcParams["font.size"] = 14
 plt.rcParams["font.family"] = "sans-serif"
 
+
 figure = plt.figure(figsize=(5, 5))
 
 

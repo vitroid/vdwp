@@ -104,120 +104,129 @@ for structure in crystals.names:
 plt.rcParams["font.size"] = 14
 plt.rcParams["font.family"] = "sans-serif"
 
-figure = plt.figure(figsize=(5, 5))
+# figure = plt.figure(figsize=(5, 5))
+fig, axes = plt.subplots(
+    nrows=1, ncols=2, figsize=(
+        9, 5), sharey=True, gridspec_kw={
+            'wspace': 0})
 
-
-plt.xlim(-0.4, 0.3)
-plt.ylim(-0.1, 0.6)
-plt.xlabel(
-    r"$(\Delta\mu_c^\mathrm{CS1} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
-plt.ylabel(
+ax = axes[0]
+ax.set_ylabel(
     r"$(\Delta\mu_c^\mathrm{CS2} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
-plt.axis("square")
 
-for s1, s2 in combinations(crystals.names, 2):
-    # 共存線の方程式
-    # Ax + By + C = 0
-    # A = xA - xB
-    # B = yA - yB
-    # C = mu_eA- mu_eB
-    if s1 == "HS1" or s2 == "HS1":
-        # skip metastable coexistences
-        continue
-    A = crystals.ratios[s1][0] - crystals.ratios[s2][0]
-    B = crystals.ratios[s1][1] - crystals.ratios[s2][1]
-    C = mu_e[s1] - mu_e[s2]
-    general.drawLine(A, B, C, style="-k")
+for ax in axes:
+    ax.set_xlim(-0.4, 0.2)
+    ax.set_ylim(0.05, 0.65)
+    ax.set_xlabel(
+        r"$(\Delta\mu_c^\mathrm{CS1} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
+    # ax.axis("square")
 
-# manually labelled
-plt.annotate("I",  # this is the text
-             xy=(0.4, 0.9),  # these are the coordinates to position the label
-             xycoords="axes fraction",
-             fontsize=24, )
-plt.annotate("II",  # this is the text
-             xy=(0.8, 0.2),  # these are the coordinates to position the label
-             xycoords="axes fraction",
-             fontsize=24, )
-plt.annotate("III",  # this is the text
-             xy=(0.8, 0.9),  # these are the coordinates to position the label
-             xycoords="axes fraction",
-             fontsize=24, )
+    for s1, s2 in combinations(crystals.names, 2):
+        # 共存線の方程式
+        # Ax + By + C = 0
+        # A = xA - xB
+        # B = yA - yB
+        # C = mu_eA- mu_eB
+        if s1 == "HS1" or s2 == "HS1":
+            # skip metastable coexistences
+            continue
+        A = crystals.ratios[s1][0] - crystals.ratios[s2][0]
+        B = crystals.ratios[s1][1] - crystals.ratios[s2][1]
+        C = mu_e[s1] - mu_e[s2]
+        general.drawLine(A, B, C, style="-k", ax=ax)
+
+    # manually labelled
+    ax.annotate("I",  # this is the text
+                xy=(0.4, 0.9),  # these are the coordinates to position the label
+                xycoords="axes fraction",
+                fontsize=24, )
+    ax.annotate("II",  # this is the text
+                xy=(0.8, 0.05),  # these are the coordinates to position the label
+                xycoords="axes fraction",
+                fontsize=24, )
+    ax.annotate("III",  # this is the text
+                xy=(0.8, 0.9),  # these are the coordinates to position the label
+                xycoords="axes fraction",
+                fontsize=24, )
+
+# plt.show()
+
+for a, ax in enumerate(axes):
+    ####### cage-dependent terms ###########################################
+    for name, gas in inter.items():
+        sigma = gas.sig
+        epsilon = gas.epsK * 8.314 / 1000  # in kJ/mol
+        f_c = dict()
+        for cage, R in radii.items():
+            f_c[cage] = fvalue({R: nmemb[cage]}, sigma, epsilon, beta) + stericterm
+        pressures = (50,30,10)
+        if name == "cC3H6":
+            pressures = (50, 30, 10, 0.75)
+        # elif name == "Br2":
+        #     pressures = (50, 30, 10, 1.0)
+        x = []
+        y = []
+        for pressure in pressures:
+            if a == 1 and pressure < 50:
+                continue
+            if a == 1 and name not in ("Br2", "Methane", "Ethane", "C2H4", "cC3H6", "Xe"):
+                continue
+
+            mu_g0 = (
+                chempot.chempot(temperatures, pressure*101326) +
+                chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
+            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g0, crystals.names)
+
+            X = Deltamu["CS1"] - Deltamu["HS1"]
+            Y = Deltamu["CS2"] - Deltamu["HS1"]
+            label = gas.TeX
+            color = "#000"
+            symbol = "o"
+            if pressure <= 1.0:
+                label += f" ({pressure} bar)"
+                color = "#888"
+            elif pressure < 50.0:
+                label = ""
+                if pressure == 30.0:
+                    color = "green"
+                    symbol = "."
+                elif pressure == 10.0:
+                    color = "blue"
+                    symbol = "."
+
+            # ax.plot(X, Y, symbol, color=color)
+            x.append(X)
+            y.append(Y)
+
+            if name in ("Methane", "Kr", "n-Butane", "C2H4", "Xe") or (name == "cC3H6" and pressure == 50):
+                ha = "right"
+                xytext = (-2, -16)
+            else:
+                ha = "left"
+                xytext = (5, 5)
 
 
-####### cage-dependent terms ###########################################
-for name, gas in inter.items():
-    sigma = gas.sig
-    epsilon = gas.epsK * 8.314 / 1000  # in kJ/mol
-    f_c = dict()
-    for cage, R in radii.items():
-        f_c[cage] = fvalue({R: nmemb[cage]}, sigma, epsilon, beta) + stericterm
-    Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g, crystals.names)
-
-    X = Deltamu["CS1"] - Deltamu["HS1"]
-    Y = Deltamu["CS2"] - Deltamu["HS1"]
-    plt.plot(X, Y, "ok")
-    if name in ("Methane", "Kr", "n-Butane"):
-        ha = "right"
-        xytext = (-2, -16)
-    else:
-        ha = "left"
-        xytext = (2, 2)
-    plt.annotate(gas.TeX,  # this is the text
-                 (X, Y),  # these are the coordinates to position the label
-                 textcoords="offset points",  # how to position the text
-                 xytext=xytext,  # distance from text to points (x,y)
-                 ha=ha)  # horizontal alignment can be left, right or center
-    if name == "cC3H6":
-        mu_g90 = (
-            chempot.chempot(temperatures, 0.75*101326) +
-            chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
-        Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g90, crystals.names)
-
-        X = Deltamu["CS1"] - Deltamu["HS1"]
-        Y = Deltamu["CS2"] - Deltamu["HS1"]
-        plt.plot(X, Y, "ok")
-        ha = "left"
-        xytext = (2, 2)
-        plt.annotate(gas.TeX+" (0.75 bar)",  # this is the text
-                    (X, Y),  # these are the coordinates to position the label
-                    textcoords="offset points",  # how to position the text
-                    xytext=xytext,  # distance from text to points (x,y)
-                    ha=ha)  # horizontal alignment can be left, right or center
-    if name == "Br2":
-        mu_g90 = (
-            chempot.chempot(temperatures, 1.0*101326) +
-            chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
-        Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g90, crystals.names)
-
-        X = Deltamu["CS1"] - Deltamu["HS1"]
-        Y = Deltamu["CS2"] - Deltamu["HS1"]
-        plt.plot(X, Y, "ok")
-        ha = "left"
-        xytext = (2, 2)
-        plt.annotate(gas.TeX+" (1.0 bar)",  # this is the text
-                    (X, Y),  # these are the coordinates to position the label
-                    textcoords="offset points",  # how to position the text
-                    xytext=xytext,  # distance from text to points (x,y)
-                    ha=ha)  # horizontal alignment can be left, right or center
-
-
-# for guest, label in [("CPENTANE", "cPen")]:
-#     f_c = vdWP.EncagingFE(temperatures, guest, stericterm)
-#     Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g, crystals.names)
-
-#     X = Deltamu["CS1"] - Deltamu["HS1"]
-#     Y = Deltamu["CS2"] - Deltamu["HS1"]
-#     plt.plot(X, Y, "ok")
-#     ha = "left"
-#     xytext=(2,2)
-#     plt.annotate(label, # this is the text
-#                 (X, Y), # these are the coordinates to position the label
-#                 textcoords="offset points", # how to position the text
-#                 xytext=xytext, # distance from text to points (x,y)
-#                 ha=ha) # horizontal alignment can be left, right or center
+            ax.annotate(label,  # this is the text
+                        (X, Y),  # these are the coordinates to position the label
+                        textcoords="offset points",  # how to position the text
+                        xytext=xytext,  # distance from text to points (x,y)
+                        color=color,
+                        ha=ha)  # horizontal alignment can be left, right or center
+        # if a == 0:
+        if len(x) > 3:
+            ax.plot(x[2:4], y[2:4], ":k", linewidth=0.5)
+        ax.plot(x[:3], y[:3], "-k", linewidth=0.5)
+        s = (40,30,30,20)
+        markers = ("o", "^", "+", "o")
+        facecolors=("white", "blue", "green", "white")
+        edgecolors=("black", "blue", "green", "gray")
+        for i, (X, Y) in enumerate(zip(x,y)):
+            ax.scatter(X, Y, s=s[i], marker= markers[i], facecolors=facecolors[i], edgecolors=edgecolors[i])
+        # ax.plot(x[0], y[0], "o", color="black", fillcolor="white")
 
 ticks = np.concatenate(
     [np.array([0.0]), np.logspace(-5, 0.0, 300)])  # 1e-4 .. 1e0
+ax = axes[1]
 
 for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
                                                    "blue"), ("Xe", "Br2", "green"), ("Methane", "cC3H6", "#cc0")]:
@@ -231,7 +240,7 @@ for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
         Y.append(y)
-    plt.plot(X, Y, "-", color=color)
+    ax.plot(X, Y, "-", color=color)
     X = []
     Y = []
     for frac in np.linspace(0, 1.0, 11):
@@ -241,11 +250,11 @@ for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
         Y.append(y)
-    plt.plot(X, Y, ".", color=color)
+    ax.plot(X, Y, ".", color=color)
 
 
-for a, b in [("Ethane", "Br2"), ("CO2", "Br2"),
-             ("N2O", "Br2"), ("C2H4", "Br2"), ("cC3H6", "Br2")]:
+for a, b in [("Ethane", "Br2"), ("Methane", "Br2"),
+             ("Xe", "Br2"), ("C2H4", "Br2"), ("cC3H6", "Br2")]:
     pressures = np.zeros(2)
     X = []
     Y = []
@@ -256,13 +265,10 @@ for a, b in [("Ethane", "Br2"), ("CO2", "Br2"),
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
         Y.append(y)
-    if a == "cC3H6":
-        plt.plot(X, Y, "--k", linewidth=0.5, dashes=(10,5))
-    else:
-        plt.plot(X, Y, "-k", linewidth=0.5)
+    ax.plot(X, Y, "-k", linewidth=0.5)
 
 
 plt.tight_layout()
 plt.show()
-figure.savefig("Figure3.pdf")
-figure.savefig("Figure3.png")
+fig.savefig("Figure3.pdf")
+fig.savefig("Figure3.png")

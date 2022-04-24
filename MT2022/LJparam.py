@@ -5,26 +5,26 @@ from vdwp.physconst import NkB, NA, kB
 
 # Our paper MT2022
 gastable = """
-Methane 3.758 148.6 $\\mathrm{CH}_4$
-Ethane 4.520 208.8
-C2H4 4.232 205 $\\mathrm{C_2H_4}$
-Ne 2.749 35.6
-Ar 3.405 119.8
-Kr 3.60 171.0
-Xe 4.047 231.0
-Br2 4.83 550 Q
-CO2 4.486 189.0 $\\mathrm{CO}_2$
-CS2 4.438 488 $\\mathrm{CS_2}$
-N2O 4.59 189 $\\mathrm{N_2O}$
+Methane  3.758 148.6 $\\mathrm{CH}_4$
+Ethane   4.520 208.8
+C2H4     4.232 205 $\\mathrm{C_2H_4}$
+Ne       2.749  35.6
+Ar       3.405 119.8
+Kr       3.60  171.0
+Xe       4.047 231.0
+Br2      4.9   530 Q                        # manually set. Becomes sIII at 10 bar.
+CO2      4.486 189.0 $\\mathrm{CO}_2$
+CS2      4.438 488 $\\mathrm{CS_2}$
+N2O      4.59  189 $\\mathrm{N_2O}$
 n-Butane 4.997 410 $n\\mathrm{-Butane}$
-# cC3H6 4.811 208        # Hirschfelder
-cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$ # from CP
-# cProp4 4.80 285       # manually modified Hirschfelder
+cC3H6    4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$ # from CP
 """.splitlines()
 
 # Bromine that becomes sIII at 50 bar
 # Br2 4.933 488 $\\mathrm{Br}_2$
 # cC3H6 4.582733199595731 301.51400454201365 $c\\mathrm{C_3H_6}$
+# cC3H6 4.811 208        # Hirschfelder
+# cProp4 4.80 285        # manually modified Hirschfelder
 
 # CF4 fails to reproduce the phase. 
 # CF4 4.70 152.5 $\\mathrm{CF_4}$ 
@@ -50,7 +50,6 @@ for gas in gastable:
     inter[name] = AttrDict({"sig": (float(sig) + tip4pice.sig) / 2,
                             "epsK": (float(epsK) * tip4pice.epsK)**0.5,
                             "TeX": tex})
-
 
 if __name__ == "__main__":
 
