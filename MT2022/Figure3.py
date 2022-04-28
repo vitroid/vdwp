@@ -70,7 +70,6 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
     return X, Y
 
 
-
 # User variables
 pressure = 101325.00 * 50  # Pa
 temperatures = 273.15
@@ -86,13 +85,6 @@ mu_g = (
     chempot.chempot(temperatures, pressure) +
     chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
 
-# for hydrate structure types
-# mu_e = dict()
-# for structure in crystals.names:
-#     logger.info(
-#         f"Calculating chemical potential of empty clathrate {structure}...")
-#     mu_e[structure] = crystals.U_e[structure] + \
-#         normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
 mu_e = crystals.mu_e
 
 #plt.rcParams['text.usetex'] = True
@@ -153,8 +145,9 @@ for a, ax in enumerate(axes):
         epsilon = gas.epsK * 8.314 / 1000  # in kJ/mol
         f_c = dict()
         for cage, R in crystals.radii.items():
-            f_c[cage] = fvalue({R: crystals.nmemb[cage]}, sigma, epsilon, beta) + stericterm
-        pressures = (50,30,10)
+            f_c[cage] = fvalue({R: crystals.nmemb[cage]},
+                               sigma, epsilon, beta) + stericterm
+        pressures = (50, 30, 10)
         if name == "cC3H6":
             pressures = (50, 30, 10, 0.75)
         # elif name == "Br2":
@@ -164,13 +157,26 @@ for a, ax in enumerate(axes):
         for pressure in pressures:
             if a == 1 and pressure < 50:
                 continue
-            if a == 1 and name not in ("Br2", "Methane", "Ethane", "C2H4", "cC3H6", "Xe"):
+            if a == 1 and name not in (
+                "Br2",
+                "Methane",
+                "Ethane",
+                "C2H4",
+                "cC3H6",
+                    "Xe"):
                 continue
 
             mu_g0 = (
-                chempot.chempot(temperatures, pressure*101326) +
-                chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
-            Deltamu = vdWP.ChemPotByOccupation(temperatures, f_c, mu_g0, crystals.names)
+                chempot.chempot(
+                    temperatures,
+                    pressure *
+                    101326) +
+                chempot.IntegrationFixMinus(
+                    temperatures,
+                    dimen=0) +
+                stericterm)
+            Deltamu = vdWP.ChemPotByOccupation(
+                temperatures, f_c, mu_g0, crystals.names)
 
             X = Deltamu["CS1"] - Deltamu["HS1"]
             Y = Deltamu["CS2"] - Deltamu["HS1"]
@@ -193,13 +199,18 @@ for a, ax in enumerate(axes):
             x.append(X)
             y.append(Y)
 
-            if name in ("Methane", "Kr", "n-Butane", "C2H4", "Xe") or (name == "cC3H6" and pressure == 50):
+            if name in (
+                    "Methane",
+                    "Kr",
+                    "n-Butane",
+                    "C2H4",
+                    "Xe") or (
+                    name == "cC3H6" and pressure == 50):
                 ha = "right"
                 xytext = (-2, -16)
             else:
                 ha = "left"
                 xytext = (5, 5)
-
 
             ax.annotate(label,  # this is the text
                         (X, Y),  # these are the coordinates to position the label
@@ -211,12 +222,18 @@ for a, ax in enumerate(axes):
         if len(x) > 3:
             ax.plot(x[2:4], y[2:4], ":k", linewidth=0.5)
         ax.plot(x[:3], y[:3], "-k", linewidth=0.5)
-        s = (40,30,30,20)
+        s = (40, 30, 30, 20)
         markers = ("o", "^", "+", "o")
-        facecolors=("white", "blue", "green", "white")
-        edgecolors=("black", "blue", "green", "gray")
-        for i, (X, Y) in enumerate(zip(x,y)):
-            ax.scatter(X, Y, s=s[i], marker= markers[i], facecolors=facecolors[i], edgecolors=edgecolors[i])
+        facecolors = ("white", "blue", "green", "white")
+        edgecolors = ("black", "blue", "green", "gray")
+        for i, (X, Y) in enumerate(zip(x, y)):
+            ax.scatter(
+                X,
+                Y,
+                s=s[i],
+                marker=markers[i],
+                facecolors=facecolors[i],
+                edgecolors=edgecolors[i])
         # ax.plot(x[0], y[0], "o", color="black", fillcolor="white")
 
 ticks = np.concatenate(
@@ -229,8 +246,8 @@ for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
     X = []
     Y = []
     for frac in ticks:
-        pressures[1] = 50.0*frac
-        pressures[0] = 50.0*(1.0 - frac)
+        pressures[1] = 50.0 * frac
+        pressures[0] = 50.0 * (1.0 - frac)
         x, y = MultipleClathrate(
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
@@ -239,8 +256,8 @@ for a, b, color in [("Methane", "Ethane", "red"), ("Methane", "C2H4",
     X = []
     Y = []
     for frac in np.linspace(0, 1.0, 11):
-        pressures[1] = 50.0*frac
-        pressures[0] = 50.0*(1.0 - frac)
+        pressures[1] = 50.0 * frac
+        pressures[0] = 50.0 * (1.0 - frac)
         x, y = MultipleClathrate(
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)
@@ -254,8 +271,8 @@ for a, b in [("Ethane", "Br2"), ("Methane", "Br2"),
     X = []
     Y = []
     for frac in ticks:
-        pressures[1] = 50.0*frac
-        pressures[0] = 50.0*(1.0 - frac)
+        pressures[1] = 50.0 * frac
+        pressures[0] = 50.0 * (1.0 - frac)
         x, y = MultipleClathrate(
             (inter[a], inter[b]), pressures * 101326, temperatures, crystals.names)
         X.append(x)

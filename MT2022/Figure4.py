@@ -75,13 +75,6 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
     return X, Y
 
 
-# radii = {
-#     12: 3.894043995956962,
-#     14: 4.3269124645840025,
-#     15: 4.479370276434863,
-#     16: 4.694779956202102}
-# nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
-
 # User variables
 pressure = 101325.00 * 50  # Pa
 temperatures = 273.15
@@ -100,13 +93,6 @@ mu_g = (
 
 ####### structure-dependent terms ######################################
 
-# for hydrate structure types
-# mu_e = dict()
-# for structure in structures:
-#     logger.info(
-#         f"Calculating chemical potential of empty clathrate {structure}...")
-#     mu_e[structure] = crystals.U_e[structure] + \
-#         normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
 mu_e = crystals.mu_e
 
 # plt.rcParams['text.usetex'] = True
@@ -210,7 +196,7 @@ def cities(ax, gases):
 
 
 def contourfill(ax, X, Y, Z, Z2):
-    #Phases of the 2nd component
+    # Phases of the 2nd component
     contours = ax.contour(
         X,
         Y,
@@ -218,7 +204,7 @@ def contourfill(ax, X, Y, Z, Z2):
         levels=[1.5, 2.5],
         colors='black',
         linewidths=2)
-    #Number of phases by mixing
+    # Number of phases by mixing
     contours = ax.contour(
         X,
         Y,
@@ -251,6 +237,7 @@ def contourfill(ax, X, Y, Z, Z2):
 # plt.imshow(Z, extent=[0, 5, 0, 5], origin='lower',
 #            cmap='RdGy', alpha=0.5)
 # plt.colorbar()
+
 
 # plt.show()
 fig, axes = plt.subplots(
@@ -302,7 +289,7 @@ contours = ax.contour(
     X,
     Y,
     Z,
-    levels=[0.9999,],
+    levels=[0.9999, ],
     colors='black',
     linestyles="dashed")
 
@@ -310,7 +297,7 @@ contours = ax.contour(
     X,
     Y,
     Z,
-    levels=[0.0,],
+    levels=[0.0, ],
     colors='black',
     linewidths=2)
 
@@ -319,7 +306,7 @@ cs = ax.contourf(
     Y,
     Z,
     levels=[0.0, 0.0001, 0.001, 0.01, 0.1, 0.9999, 2.0],
-    colors=['#ccf', '#dfd', '#cfc', '#bfb', '#afa', '#9f9', '#fcc'], 
+    colors=['#ccf', '#dfd', '#cfc', '#bfb', '#afa', '#9f9', '#fcc'],
     extend='min')
 
 cities(ax=ax, gases=gases)
@@ -328,7 +315,6 @@ ax.annotate("(a) X + Q",  # this is the text
             xy=(0.8, 0.92),  # these are the coordinates to position the label
             xycoords="axes fraction",
             fontsize=20, ha="right")
-
 
 
 # (b)
@@ -366,7 +352,6 @@ ax.annotate("(b) Me + X",  # this is the text
             xy=(0.6, 0.92),  # these are the coordinates to position the label
             xycoords="axes fraction",
             fontsize=20, ha="right")
-
 
 
 # (c)
