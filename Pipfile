@@ -7,6 +7,8 @@ name = "pypi"
 numpy = "*"
 matplotlib = "*"
 attrdict = "*"
+genice2 = "*"
+genice2-cage = "*"
 
 [dev-packages]
 autopep8 = "*"

@@ -9,28 +9,35 @@ ratios = {"CS1": (1.0, 0.0, 0.0),
           "CS2": (0.0, 1.0, 0.0),
           "HS1": (0.0, 0.0, 1.0),
           "TS1": (23 / 43, 0.0, 20 / 43)}
-nma_file = {"CS2": "lattice/C15retry/cat.0.renma.dist",
-            "CS1": "lattice/A15retry/cat.0.renma.dist",
-            "TS1": "lattice/sigma-udachinx1.006/cat.0.renma.dist",
-            "HS1": "lattice/Z-Yang2009/cat.0.renma.dist"}
-U_e = {"CS2": -54.7751,
-       "CS1": -54.3857,
-       "HS1": -54.33,  # MT2011
-       "TS1": -54.37,
-       "Ih": -55.2238,
-       }
-# # TIP4P/ICE + Gromacs
-# U_e = {"CS2": -68.787,
-#        "CS1": -68.305,
-#        "HS1": -68.021,  # MT2011
-#        "TS1": -68.209,
-#        }
 
-# /r7/tanaka/hydratem/*/frgc/fort201
 # 5.0 MPa, 273K, 3rd column (w/o Pauling entropy)
 # TIP4P/ICE
-mu_e = {"CS1": -58.949132635232,
-        "CS2": -59.123708525355,
-        "TS1": -58.994049071204,
-        "HS1": -58.668983660722, 
-        }
+# raw data:  FE (w/o Pauling entropy), Nw, volume / (cm^3/mol)
+    
+tip4pice_data = {
+"CS1": "   -59.841454832900  1242  22.723050432819",
+"CS2": "   -59.922551474335  1088  23.039907104034",
+"TS1": "   -59.775409212738  1376  22.788576341391",
+"HS1": "   -59.608521883866  1440  22.826573500133",
+ }
+# CS1: 0.7921471658577371 g cm^-3
+# CS2: 0.7812531499681448 g cm^-3
+# TS1: 0.789869438544369 g cm^-3
+# HS1: 0.7885546203373502 g cm^-3
+
+mu_e = dict()
+for structure, s in tip4pice_data.items():
+    cols = s.split()
+    mu_e[structure] = float(cols[0])
+    density = 18 / float(cols[2])
+    print(f"{structure}: {density} g cm^{-3}")
+
+
+radii = {
+    12: 3.988,
+    14: 4.331,
+    15: 4.527,
+    16: 4.587,
+}
+nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
+print(radii)

@@ -16,7 +16,7 @@ import vdwp.chempot as chempot
 # from ljd.ljd import fvalue
 from vdwp.general import drawLine
 
-import numpy as np
+# import numpy as np
 # import vdwp.interpolate as ip
 import matplotlib.pyplot as plt
 from itertools import combinations
@@ -50,9 +50,9 @@ plt.rcParams["font.family"] = "sans-serif"
 figure = plt.figure(figsize=(5, 5))
 
 
-plt.xlim(-0.4, 0.6)
-plt.ylim(-0.4, 0.6)
-plt.xticks([-0.4, -0.2, 0, 0.2, 0.4, 0.6])
+plt.xlim(-0.1, 0.5)
+plt.ylim(-0.1, 0.5)
+plt.xticks([0, 0.2, 0.4])
 plt.xlabel(
     r"$(\Delta\mu_c^\mathrm{CS1} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
 plt.ylabel(
@@ -66,14 +66,8 @@ stericterm = chempot.StericFix(temperatures, mass=1.0, symm=1, moi=(0, 0, 0))
 
 ####### structure-dependent terms ######################################
 
-# for hydrate structure types
-mu_e = dict()
-for structure in crystals.names:
-    logger.info(
-        f"Calculating chemical potential of empty clathrate {structure}...")
-    mu_e[structure] = crystals.U_e[structure] + \
-        normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
-# mu_e = crystals.mu_e
+# TIP4P/ICE values by Tanaka
+mu_e = crystals.mu_e
 
 for s1, s2 in combinations(crystals.names, 2):
     # 共存線の方程式
