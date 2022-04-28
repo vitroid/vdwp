@@ -58,9 +58,9 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
                 chempot.chempot(temperatures, pressure) +
                 chempot.IntegrationFixMinus(temperatures, dimen=0))
             ff = dict()
-            for cage, R in radii.items():
+            for cage, R in crystals.radii.items():
                 # sigma and epsilon must be the intermolecular ones.
-                ff[cage] = fvalue({R: nmemb[cage]}, gas.sig,
+                ff[cage] = fvalue({R: crystals.nmemb[cage]}, gas.sig,
                                   gas.epsK * 8.314 / 1000, beta)
             f.append(ff)
     Deltamu = vdWP.ChemPotByOccupation(temperatures, f, mu, structures)
@@ -70,12 +70,6 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
     return X, Y
 
 
-radii = {
-    12: 3.894043995956962,
-    14: 4.3269124645840025,
-    15: 4.479370276434863,
-    16: 4.694779956202102}
-nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
 
 # User variables
 pressure = 101325.00 * 50  # Pa
@@ -93,12 +87,13 @@ mu_g = (
     chempot.IntegrationFixMinus(temperatures, dimen=0) + stericterm)
 
 # for hydrate structure types
-mu_e = dict()
-for structure in crystals.names:
-    logger.info(
-        f"Calculating chemical potential of empty clathrate {structure}...")
-    mu_e[structure] = crystals.U_e[structure] + \
-        normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+# mu_e = dict()
+# for structure in crystals.names:
+#     logger.info(
+#         f"Calculating chemical potential of empty clathrate {structure}...")
+#     mu_e[structure] = crystals.U_e[structure] + \
+#         normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+mu_e = crystals.mu_e
 
 #plt.rcParams['text.usetex'] = True
 plt.rcParams["font.size"] = 14
@@ -115,8 +110,8 @@ ax.set_ylabel(
     r"$(\Delta\mu_c^\mathrm{CS2} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
 
 for ax in axes:
-    ax.set_xlim(-0.4, 0.2)
-    ax.set_ylim(0.05, 0.65)
+    ax.set_xlim(-0.4, 0.3)
+    ax.set_ylim(-0.05, 0.65)
     ax.set_xlabel(
         r"$(\Delta\mu_c^\mathrm{CS1} - \Delta\mu_c^\mathrm{HS1}) / \mathrm{kJ~mol}^{-1}$")
     # ax.axis("square")
@@ -157,8 +152,8 @@ for a, ax in enumerate(axes):
         sigma = gas.sig
         epsilon = gas.epsK * 8.314 / 1000  # in kJ/mol
         f_c = dict()
-        for cage, R in radii.items():
-            f_c[cage] = fvalue({R: nmemb[cage]}, sigma, epsilon, beta) + stericterm
+        for cage, R in crystals.radii.items():
+            f_c[cage] = fvalue({R: crystals.nmemb[cage]}, sigma, epsilon, beta) + stericterm
         pressures = (50,30,10)
         if name == "cC3H6":
             pressures = (50, 30, 10, 0.75)

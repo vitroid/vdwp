@@ -75,12 +75,12 @@ def MultipleClathrate(gases, pressures, temperatures, structures):
     return X, Y
 
 
-radii = {
-    12: 3.894043995956962,
-    14: 4.3269124645840025,
-    15: 4.479370276434863,
-    16: 4.694779956202102}
-nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
+# radii = {
+#     12: 3.894043995956962,
+#     14: 4.3269124645840025,
+#     15: 4.479370276434863,
+#     16: 4.694779956202102}
+# nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
 
 # User variables
 pressure = 101325.00 * 50  # Pa
@@ -101,12 +101,13 @@ mu_g = (
 ####### structure-dependent terms ######################################
 
 # for hydrate structure types
-mu_e = dict()
-for structure in structures:
-    logger.info(
-        f"Calculating chemical potential of empty clathrate {structure}...")
-    mu_e[structure] = crystals.U_e[structure] + \
-        normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+# mu_e = dict()
+# for structure in structures:
+#     logger.info(
+#         f"Calculating chemical potential of empty clathrate {structure}...")
+#     mu_e[structure] = crystals.U_e[structure] + \
+#         normalmode.FreeEnergyOfVibration(crystals.nma_file[structure], temperatures)
+mu_e = crystals.mu_e
 
 # plt.rcParams['text.usetex'] = True
 plt.rcParams["font.size"] = 14
@@ -125,11 +126,11 @@ def DoubleClathrate(
         terminate=None):
     f1 = dict()
     f2 = dict()
-    for cage, R in radii.items():
+    for cage, R in crystals.radii.items():
         # sigma and epsilon must be the intermolecular ones.
-        f1[cage] = fvalue({R: nmemb[cage]}, g1.sig,
+        f1[cage] = fvalue({R: crystals.nmemb[cage]}, g1.sig,
                           g1.epsK * 8.314 / 1000, beta)
-        f2[cage] = fvalue({R: nmemb[cage]}, g2.sig,
+        f2[cage] = fvalue({R: crystals.nmemb[cage]}, g2.sig,
                           g2.epsK * 8.314 / 1000, beta)
 
     phases = []
