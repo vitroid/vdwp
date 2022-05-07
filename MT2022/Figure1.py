@@ -1,27 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# phasediagram.pyからの変更点:
-# ケージ積分の代わりにljdを用いる。
-# 必然的に、単原子モデル以外は扱えない。
-# 相境界の条件は50気圧、273 Kのみにする。
-# moldictの利用をやめる。
+from itertools import combinations
+from logging import getLogger, DEBUG, INFO, basicConfig
+
+import matplotlib.pyplot as plt
 
 import vdwp.vdWP as vdWP
 import vdwp.crystals as crystals
-import vdwp.normalmode as normalmode
 from vdwp.physconst import NkB, NA
-# import CageIntegral.molecule as molecule
 import vdwp.chempot as chempot
-# from ljd.ljd import fvalue
 from vdwp.general import drawLine
-
-# import numpy as np
-# import vdwp.interpolate as ip
-import matplotlib.pyplot as plt
-from itertools import combinations
-from logging import getLogger, DEBUG, INFO, basicConfig
-# from attrdict import AttrDict
 
 # basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
 basicConfig(level=INFO, format="%(levelname)s %(message)s")
@@ -29,9 +18,9 @@ logger = getLogger()
 logger.debug("Debug mode.")
 
 
-# 変数の命名則
+# Nomenclature for variables
 # f, mu: free energy/chemical potential
-#h    : enthalpy
+# h    : enthalpy
 #
 # _w   : of water
 # _i   : of ice
@@ -41,14 +30,10 @@ logger.debug("Debug mode.")
 # _c   : in the cage
 #
 
-
-# plt.rcParams['text.usetex'] = True
 plt.rcParams["font.size"] = 14
 plt.rcParams["font.family"] = "sans-serif"
 
-
 figure = plt.figure(figsize=(5, 5))
-
 
 plt.xlim(-0.1, 0.5)
 plt.ylim(-0.1, 0.5)
@@ -66,11 +51,10 @@ stericterm = chempot.StericFix(temperatures, mass=1.0, symm=1, moi=(0, 0, 0))
 
 ####### structure-dependent terms ######################################
 
-# TIP4P/ICE values by Tanaka
 mu_e = crystals.mu_e
 
 for s1, s2 in combinations(crystals.names, 2):
-    # 共存線の方程式
+    # The equation for coexistence lines
     # Ax + By + C = 0
     # A = xA - xB
     # B = yA - yB

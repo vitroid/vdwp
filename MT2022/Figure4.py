@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# phasediagram.pyからの変更点:
-# ケージ積分の代わりにljdを用いる。
-# 必然的に、単原子モデル以外は扱えない。
-# 相境界の条件は50気圧、273 Kのみにする。
-# moldictの利用をやめる。
 
-import vdwp.vdWP as vdWP
-import vdwp.crystals as crystals
-from vdwp.physconst import NkB, NA
-import vdwp.normalmode as normalmode
-# import CageIntegral.molecule as molecule
-import vdwp.chempot as chempot
-from ljd.ljd import fvalue
-# from general import drawLine
-from LJparam import gases, inter, tip4pice
-
-import numpy as np
-# import vdwp.interpolate as ip
-import matplotlib.pyplot as plt
-# from itertools import combinations
 from logging import getLogger, DEBUG, INFO, basicConfig
 from attrdict import AttrDict
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from vdwp.physconst import NkB, NA
+import vdwp.vdWP as vdWP
+import vdwp.crystals as crystals
+import vdwp.chempot as chempot
+from ljd.ljd import fvalue
+from LJparam import gases, inter, tip4pice
+from Figure3 import MultipleClathrate
 
 # basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
 basicConfig(level=INFO, format="%(levelname)s %(message)s")
@@ -40,9 +32,9 @@ def determine_phase(mu_e, Deltamu, structures):
     return stmin
 
 
-# 変数の命名則
+# Nomenclature for variables
 # f, mu: free energy/chemical potential
-#h    : enthalpy
+# h    : enthalpy
 #
 # _w   : of water
 # _i   : of ice
@@ -53,26 +45,26 @@ def determine_phase(mu_e, Deltamu, structures):
 #
 
 
-def MultipleClathrate(gases, pressures, temperatures, structures):
-    beta = 1 / (NkB * temperatures)
-    f = []
-    mu = []
-    for gas, pressure in zip(gases, pressures):
-        if pressure > 0.0:
-            mu.append(
-                chempot.chempot(temperatures, pressure) +
-                chempot.IntegrationFixMinus(temperatures, dimen=0))
-            ff = dict()
-            for cage, R in radii.items():
-                # sigma and epsilon must be the intermolecular ones.
-                ff[cage] = fvalue({R: nmemb[cage]}, gas.sig,
-                                  gas.epsK * 8.314 / 1000, beta)
-            f.append(ff)
-    Deltamu = vdWP.ChemPotByOccupation(temperatures, f, mu, structures)
+# def MultipleClathrate(gases, pressures, temperatures, structures):
+#     beta = 1 / (NkB * temperatures)
+#     f = []
+#     mu = []
+#     for gas, pressure in zip(gases, pressures):
+#         if pressure > 0.0:
+#             mu.append(
+#                 chempot.chempot(temperatures, pressure) +
+#                 chempot.IntegrationFixMinus(temperatures, dimen=0))
+#             ff = dict()
+#             for cage, R in radii.items():
+#                 # sigma and epsilon must be the intermolecular ones.
+#                 ff[cage] = fvalue({R: nmemb[cage]}, gas.sig,
+#                                   gas.epsK * 8.314 / 1000, beta)
+#             f.append(ff)
+#     Deltamu = vdWP.ChemPotByOccupation(temperatures, f, mu, structures)
 
-    X = Deltamu["CS1"] - Deltamu["HS1"]
-    Y = Deltamu["CS2"] - Deltamu["HS1"]
-    return X, Y
+#     X = Deltamu["CS1"] - Deltamu["HS1"]
+#     Y = Deltamu["CS2"] - Deltamu["HS1"]
+#     return X, Y
 
 
 # User variables
@@ -95,7 +87,6 @@ mu_g = (
 
 mu_e = crystals.mu_e
 
-# plt.rcParams['text.usetex'] = True
 plt.rcParams["font.size"] = 14
 plt.rcParams["font.family"] = "sans-serif"
 
@@ -174,7 +165,9 @@ def mark(sig, epsK, phases, lastphase, ax):
 
 
 def cities(ax, gases):
-    # 地図の上に、都市(分子)を描く。
+    """
+    Put cities (i.e. locus of the molecules) on the map.
+    """
     for name, gas in gases.items():
         sig = gas.sig
         eps = gas.epsK
@@ -219,9 +212,6 @@ def contourfill(ax, X, Y, Z, Z2):
         levels=[1.0, 2.0, 3.0],
         colors=['#8f8', '#ccf', '#fcc'],
         extend='min')
-    # for collection in cs.collections:
-    #     collection.set_linewidth(0.)
-    #     collection.set_edgecolor('#ccc')
     cs = ax.contourf(
         X,
         Y,
@@ -234,27 +224,22 @@ def contourfill(ax, X, Y, Z, Z2):
         collection.set_linewidth(0.)
         collection.set_edgecolor('white')
 
-# plt.imshow(Z, extent=[0, 5, 0, 5], origin='lower',
-#            cmap='RdGy', alpha=0.5)
-# plt.colorbar()
 
-
-# plt.show()
 fig, axes = plt.subplots(
     nrows=1, ncols=3, figsize=(
         12, 5), sharey=True, gridspec_kw={
             'wspace': 0})
+
 xyticks = 40
 
 # (a)
-# Br2と混合すると、IIが生じる濃度。
+# Calculate the minimum concentration that, when mixed with Q, produces II.
 ax = axes[0]
 guest = "Br2"
 ax.set_xlabel(r"$\sigma_g / \AA$")
 ax.set_ylabel(r"$\epsilon_g / K$")
 ax.set_xlim(3.45, 5.1)
 ax.set_ylim(120.0, 600)
-# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
 ticks = np.concatenate(
     [np.array([0.0]), np.logspace(-4, 0.0, 300)])  # 1e-4 .. 1e0
 x = np.linspace(3.45, 5.1, xyticks * 2)
@@ -318,14 +303,12 @@ ax.annotate("(a) X + Q",  # this is the text
 
 
 # (b)
-# Meと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
+# Search for conditions for I-II-III-I transition when mixed with Me.
 ax = axes[1]
 guest = "Methane"
 ax.set_xlabel(r"$\sigma_g / \AA$")
 ax.set_xlim(3.45, 5.1)
 ax.set_ylim(120.0, 600)
-# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
-# ticks = np.arange(0., 1, 0.001)
 x = np.linspace(3.45, 5.1, xyticks * 2)
 y = np.linspace(120.0, 600, xyticks * 2)
 X, Y = np.meshgrid(x, y)
@@ -355,7 +338,7 @@ ax.annotate("(b) Me + X",  # this is the text
 
 
 # (c)
-# Xeと混合すると、I-II-III-I転移する条件をさがす。(てあたりしだい)
+# Search for conditions for I-II-III-I transition when mixed with Xe.
 ax = axes[2]
 markers = {1: "o", 2: "+", 3: "^"}
 guest = "Xe"
@@ -363,8 +346,6 @@ ax.set_xlabel(r"$\sigma_g / \AA$")
 # ax.set_ylabel(r"\epsilon_g / K")
 ax.set_xlim(4.55, 5.05)
 ax.set_ylim(120.0, 600)
-# ticks = np.concatenate([np.arange(0, 0.01, 0.0001), np.arange(0.01, 1, 0.01)])
-# ticks = np.arange(0., 1, 0.001)
 x = np.linspace(4.55, 5.05, xyticks * 2)
 y = np.linspace(120.0, 600, xyticks * 2)
 X, Y = np.meshgrid(x, y)

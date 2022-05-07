@@ -1,42 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# phasediagram.pyからの変更点:
-# ケージ積分の代わりにljdを用いる。
-# 必然的に、単原子モデル以外は扱えない。
-# 相境界の条件は50気圧、273 Kのみにする。
-
-from vdwp.physconst import NkB, NA
-import numpy as np
-import matplotlib.pyplot as plt
 from itertools import combinations
 from logging import getLogger, DEBUG, INFO, basicConfig
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from vdwp.physconst import NkB, NA
+from vdwp.general import drawLine
+
 
 # basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
 basicConfig(level=INFO, format="%(levelname)s %(message)s")
 logger = getLogger()
 logger.debug("Debug mode.")
-
-
-def drawLine(A, B, C, ax):
-    """
-    Ax + By + C = 0
-    """
-    if A == 0 and B == 0:
-        return
-    if A == 0:
-        X = np.linspace(-0.4, 0.6, 100)
-        Y = np.zeros_like(X) - C / B
-        ax.plot(X, Y)
-    elif B == 0:
-        Y = np.linspace(-0.4, 0.6, 100)
-        X = np.zeros_like(Y) - C / A
-        ax.plot(X, Y)
-    else:
-        X = np.linspace(-0.4, 0.6, 100)
-        Y = (-C - A * X) / B
-        ax.plot(X, Y)
-
 
 # Karttunen, A. J., Fässler, T. F., Linnolahti, M. & Pakkanen, T. A. Structural principles of semiconducting Group 14 clathrate frameworks. Inorg. Chem. 50, 1733–1742 (2011)
 # Table 2
@@ -80,15 +58,10 @@ plt.rcParams["font.family"] = "sans-serif"
 fig = plt.figure(figsize=(7, 7))
 gs = fig.add_gridspec(2, 2, hspace=0, wspace=0)
 (ax1, ax2), (ax3, ax4) = gs.subplots(sharex='col', sharey='row')
-# fig.suptitle('Sharing x per column, y per row')
-# ax1.plot(x, y)
-# ax2.plot(x, y**2, 'tab:orange')
-# ax3.plot(x + 1, -y, 'tab:green')
-# ax4.plot(x + 2, -y**2, 'tab:red')
 
-# for ax in axs.flat:
-#     ax.label_outer()
 
+xra = (-0.02, 0.06)
+yra = (0.0, 0.08)
 
 for element, panel in zip(elements, (ax1, ax2, ax3, ax4)):
     structures = karttunen[element].keys()
@@ -101,8 +74,8 @@ for element, panel in zip(elements, (ax1, ax2, ax3, ax4)):
         "orange",
         "purple",
         "brown")
-    for x in np.linspace(-0.02, 0.06, 40):
-        for y in np.linspace(0.0, 0.08, 40):
+    for x in np.linspace(*xra, 40):
+        for y in np.linspace(*yra, 40):
             smin = -1
             emin = 1e10
             for i, s in enumerate(structures):
@@ -116,19 +89,14 @@ for element, panel, label in zip(
         elements, (ax1, ax2, ax3, ax4), ("(a)", "(b)", "(c)", "(d)")):
     structures = karttunen[element].keys()
     for s1, s2 in combinations(structures, 2):
-        panel.set_xlim(-0.02, 0.06)
-        panel.set_ylim(-0.0, 0.08)
+        panel.set_xlim(*xra)
+        panel.set_ylim(*yra)
         panel.set_xlabel(r"$\Delta\mu_c^{I} - \Delta\mu_c^{IV}$")
         panel.set_ylabel(r"$\Delta\mu_c^{II} - \Delta\mu_c^{IV}$")
-        # 共存線の方程式
-        # Ax + By + C = 0
-        # A = xA - xB
-        # B = yA - yB
-        # C = mu_eA- mu_eB
         A = ratios[s1][0] - ratios[s2][0]
         B = ratios[s1][1] - ratios[s2][1]
         C = karttunen[element][s1] - karttunen[element][s2]
-        drawLine(A, B, C, ax=panel)
+        drawLine(A, B, C, style='-', ax=panel, xtick=np.linspace(*xra, 100), ytick=np.linspace(*yra, 100))
     panel.annotate(f"{label} {element}",  # this is the text
                    (0.8, 0.2),  # these are the coordinates to position the label
                    xycoords="axes fraction",  # how to position the text
@@ -136,15 +104,4 @@ for element, panel, label in zip(
 
 
 plt.show()
-# fig.savefig("group14.pdf")
-
-# fig = plt.figure(figsize=(7,7))
-# gs = fig.add_gridspec(2, 2, hspace=0, wspace=0)
-# (ax1, ax2), (ax3, ax4) = gs.subplots() #sharex='col', sharey='row')
-# for element, panel in zip(elements, (ax1, ax2, ax3, ax4)):
-#     for s in ratios:
-#         v0 = 1.0 / density[element][s]
-#         v1 = ratios[s][0] / density[element]["I"] + ratios[s][1] / density[element]["II"] + ratios[s][2] / density[element]["IV"]
-#         panel.plot(v0, v1, "o")
-
-# plt.show()
+fig.savefig("Figure2.pdf")

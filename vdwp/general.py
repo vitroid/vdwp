@@ -7,6 +7,9 @@ def drawLine(A, B, C, style=".", ax=plt, xtick=np.linspace(-0.6, 1.0, 100),
     """
     Ax + By + C = 0
     """
+    if A == 0 and B == 0:
+        # no coexistence
+        return
     if A == 0:
         X = xtick
         Y = np.zeros_like(X) - C / B

@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# phasediagram.pyからの変更点:
-# ケージ積分の代わりにljdを用いる。
-# 必然的に、単原子モデル以外は扱えない。
-# 相境界の条件は50気圧、273 Kのみにする。
-# moldictの利用をやめる。
-
-from vdwp import vdWP, crystals, normalmode, general, chempot
-from vdwp.physconst import NkB, NA
-# import CageIntegral.molecule as molecule
-from ljd.ljd import fvalue
-from LJparam import gases, inter
-
-import numpy as np
-# import vdwp.interpolate as ip
-import matplotlib.pyplot as plt
 from itertools import combinations
 from logging import getLogger, DEBUG, INFO, basicConfig
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from vdwp import vdWP, crystals, general, chempot
+from vdwp.physconst import NkB, NA
+from ljd.ljd import fvalue
+from LJparam import inter
+
 
 # basicConfig(level=DEBUG, format="%(levelname)s %(message)s")
 basicConfig(level=INFO, format="%(levelname)s %(message)s")
@@ -35,9 +29,9 @@ def determine_phase(mu_e, Deltamu, structures):
     return stmin
 
 
-# 変数の命名則
+# Nomenclature for variables
 # f, mu: free energy/chemical potential
-#h    : enthalpy
+# h    : enthalpy
 #
 # _w   : of water
 # _i   : of ice
@@ -109,11 +103,6 @@ for ax in axes:
     # ax.axis("square")
 
     for s1, s2 in combinations(crystals.names, 2):
-        # 共存線の方程式
-        # Ax + By + C = 0
-        # A = xA - xB
-        # B = yA - yB
-        # C = mu_eA- mu_eB
         if s1 == "HS1" or s2 == "HS1":
             # skip metastable coexistences
             continue
@@ -135,8 +124,6 @@ for ax in axes:
                 xy=(0.8, 0.9),  # these are the coordinates to position the label
                 xycoords="axes fraction",
                 fontsize=24, )
-
-# plt.show()
 
 for a, ax in enumerate(axes):
     ####### cage-dependent terms ###########################################
@@ -163,7 +150,7 @@ for a, ax in enumerate(axes):
                 "Ethane",
                 "C2H4",
                 "cC3H6",
-                    "Xe"):
+                "Xe"):
                 continue
 
             mu_g0 = (
