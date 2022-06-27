@@ -1,0 +1,3 @@
+[submodule "CageIntegral"]
+	path = CageIntegral
+	url = https://github.com/vitroid/CageIntegral.git

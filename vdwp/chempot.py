@@ -1,1 +1,1 @@
-../../CageIntegral/chempot.py
+../CageIntegral/chempot.py
