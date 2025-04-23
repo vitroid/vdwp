@@ -3,22 +3,27 @@ import vdwp.physconst as pc
 import numpy as np
 from logging import getLogger
 import vdwp.crystals as crystals
+from vdwp.decorators import deprecated_alias
+
 
 # 占有率を求める。
 # mu: chemical potential of the gas
 # f:  list of the free energy of cage occupation
-
-
-def Occupancy(mu, f, Temp):
-    Beta = 1.0 / (pc.NkB * Temp)
+def calculate_cage_occupancy(mu: float, f: dict, temperature: float) -> dict:
+    Beta = 1.0 / (pc.NkB * temperature)
     occ = dict()
     for i in f.keys():
-        occ[i] = np.exp(Beta * (mu - f[i])) / \
-            (1.0 + np.exp(Beta * (mu - f[i])))
+        A = np.exp(Beta * (mu - f[i]))
+        occ[i] = A / (1.0 + A)
     return occ
 
 
-def ChemPotByOccupation(temperatures, f_c, mu_guest, structures):
+@deprecated_alias("calculate_cage_occupancy")
+def Occupancy(mu, f, Temp):
+    pass
+
+
+def calculate_chemical_potential_by_occupation(temperatures, f_c, mu_guest, structures):
     logger = getLogger()
     Deltamu = dict()
 
@@ -44,3 +49,8 @@ def ChemPotByOccupation(temperatures, f_c, mu_guest, structures):
         Deltamu[structure] = sum
 
     return Deltamu
+
+
+@deprecated_alias("calculate_chemical_potential_by_occupation")
+def ChemPotByOccupation(temperatures, f_c, mu_guest, structures):
+    pass
