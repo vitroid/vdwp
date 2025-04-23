@@ -197,6 +197,7 @@ def corrections_due_to_molecular_shape(
 #         dimen = 0
 #         if debug:
 #             logger.debug value, "\tAvalue"
+#             logger.debug value, "\tAvalue"
 #         return value
 #     elif izz == 0:
 #         #rodlike
@@ -204,11 +205,15 @@ def corrections_due_to_molecular_shape(
 #         if debug:
 #             logger.debug value, "\tAvalue"
 #             logger.debug Cvalue2(T,ixx), "\tCvalue2"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue2(T,ixx), "\tCvalue2"
 #         return value + Cvalue2(T,ixx)
 #     else:
 #         #polyatomic
 #         dimen = 3
 #         if debug:
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
 #             logger.debug value, "\tAvalue"
 #             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
 #         return value + Cvalue(T,ixx, iyy, izz)
@@ -222,6 +227,7 @@ def corrections_due_to_molecular_shape(
 #         dimen = 0
 #         if debug:
 #             logger.debug value, "\tAvalue"
+#             logger.debug value, "\tAvalue"
 #         return value
 #     elif izz == 0:
 #         #rodlike
@@ -230,11 +236,17 @@ def corrections_due_to_molecular_shape(
 #             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
 #             logger.debug value, "\tAvalue"
 #             logger.debug Cvalue2(T,ixx), "\tCvalue2"
+#             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue2(T,ixx), "\tCvalue2"
 #         return value + SymmetryFix(T, symm) + Cvalue2(T,ixx)
 #     else:
 #         #polyatomic
 #         dimen = 3
 #         if debug:
+#             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
 #             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
 #             logger.debug value, "\tAvalue"
 #             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
