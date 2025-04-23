@@ -183,9 +183,7 @@ def molecular_chemical_potential_corrections(
 
 
 @deprecated_alias("molecular_chemical_potential_corrections")
-def corrections_due_to_molecular_shape(
-    temperature, mass, symmetry, moment_of_inertia, debug=False
-):
+def StericFix(temperature, mass, symmetry, moment_of_inertia, debug=False):
     pass
 
 
