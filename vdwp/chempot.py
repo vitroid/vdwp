@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 
-import physconst as pc
-from math import *
+import vdwp.physconst as pc
+import numpy as np
+from logging import getLogger
 
 
-#
 # atomic mass in g/mol
 # OBSOLETE
-def IdealGas(Temp, pressure, atomicmass):
-    A = 2.0 * pi * (atomicmass * 0.001 / pc.NA) * pc.kB * Temp / (pc.h**2)
-    return -pc.NkB * Temp * (1.5 * log(A) + log(pc.kB * Temp / pressure))
+def _IdealGas(Temp, pressure, atomicmass):
+    A = 2.0 * np.pi * (atomicmass * 0.001 / pc.NA) * pc.kB * Temp / (pc.h**2)
+    return -pc.NkB * Temp * (1.5 * np.log(A) + np.log(pc.kB * Temp / pressure))
 
 
 # a_coeff == coeff comes from mass(g/mol)
-def Avalue(T, mass):
+def Avalue(Temp, mass):
     return (
         -pc.NkB
-        * T
+        * Temp
         * (3.0 / 2.0)
-        * log(mass * 0.001 / pc.NA * 2.0 * pi * pc.kB * T / pc.h**2)
+        * np.log(mass * 0.001 / pc.NA * 2.0 * np.pi * pc.kB * Temp / pc.h**2)
     )
 
 
@@ -30,71 +30,70 @@ def Cvalue(T, ixx, iyy, izz):
     izz *= 0.001 / pc.NA * 1e-10**2
     return (
         -pc.NkB
-        * T
+        * Temp
         * (
-            (1.0 / 2.0) * log(ixx * iyy * izz)
-            + (3.0 / 2.0) * log(2.0 * pi * pc.kB * T / pc.h**2)
+            (1.0 / 2.0) * np.log(ixx * iyy * izz)
+            + (3.0 / 2.0) * np.log(2.0 * np.pi * pc.kB * Temp / pc.h**2)
         )
     )
 
 
-def Cvalue2(T, ixx):
+def Cvalue2(Temp, ixx):
     ixx *= 0.001 / pc.NA * 1e-10**2
-    return -pc.NkB * T * (log(ixx) + log(2.0 * pi * pc.kB * T / pc.h**2))
+    return -pc.NkB * Temp * (np.log(ixx) + np.log(2.0 * np.pi * pc.kB * Temp / pc.h**2))
 
 
-def SymmetryFix(T, symm):
-    return pc.NkB * T * log(symm)
+def SymmetryFix(Temp, symm):
+    return pc.NkB * Temp * np.log(symm)
 
 
 # In case dimen == 3, even if you change it,
 # both water and guest share the same value and therefore they cancel.
 # Correction for empty integration.
-def IntegrationFixMinus(T, dimen):
+def IntegrationFixMinus(Temp, dimen):
     # 2014-12-24 Removed
     # return 0.0
     # 2015-2-5 revival.
     if dimen == 3:
-        return -pc.NkB * T * log(8 * pi**2)
+        return -pc.NkB * Temp * np.log(8 * np.pi**2)
     elif dimen == 1:
-        return -pc.NkB * T * log(4 * pi)
+        return -pc.NkB * Temp * np.log(4 * np.pi)
     else:
         return 0.0
 
 
 # ixx,iyy,izz: moment of inertia in (atomic mass) x A**2 (Use output of momentofinertia.py)
 # For use with ideal gas EOS.
-def StericFix(T, mass, symm, ixx=0, iyy=0, izz=0, debug=False):
-    value = Avalue(T, mass)
+def StericFix(Temp, mass, symm, moi):
+    logger = getLogger()
+    ixx, iyy, izz = moi
+    value = Avalue(Temp, mass)
     if ixx == 0:
         # monatomic
         dimen = 0
-        if debug:
-            print(T, "\tTemperature")
-            print(value, "\tAvalue")
+        logger.debug(f"{Temp}\tTemperature")
+        logger.debug(f"{value}\tAvalue")
         return value
     elif izz == 0:
         # rodlike
         dimen = 1
-        if debug:
-            print(T, "\tTemperature")
-            # print IntegrationFix(T,dimen), "\tIntegration Fix"
-            # print SymmetryFix(T, symm), "\tSymmetryFix"
-            print(value, "\tAvalue")
-            print(SymmetryFix(T, symm) + Cvalue2(T, ixx), "\tCvalue2")
-        # return value + IntegrationFix(T,dimen) + SymmetryFix(T, symm) + Cvalue2(T,ixx)
-        return value + SymmetryFix(T, symm) + Cvalue2(T, ixx)
+        logger.debug(f"{Temp}\tTemperature")
+        # logger.debug IntegrationFix(Temp,dimen), "\tIntegration Fix"
+        # logger.debug SymmetryFix(Temp, symm), "\tSymmetryFix"
+        logger.debug(f"{value}\tAvalue")
+        logger.debug(SymmetryFix(Temp, symm) + Cvalue2(Temp, ixx), "\tCvalue2")
+        # return value + IntegrationFix(Temp,dimen) + SymmetryFix(Temp, symm) + Cvalue2(Temp,ixx)
+        return value + SymmetryFix(Temp, symm) + Cvalue2(Temp, ixx)
     else:
         # polyatomic
         dimen = 3
-        if debug:
-            print(T, "\tTemperature")
-            # print IntegrationFix(T,dimen), "\tIntegration Fix"
-            # print SymmetryFix(T, symm), "\tSymmetryFix"
-            print(value, "\tAvalue")
-            print(SymmetryFix(T, symm) + Cvalue(T, ixx, iyy, izz), "\tCvalue")
-        # return value + IntegrationFix(T,dimen) + SymmetryFix(T, symm) + Cvalue(T,ixx, iyy, izz)
-        return value + SymmetryFix(T, symm) + Cvalue(T, ixx, iyy, izz)
+        logger.debug(f"{Temp}\tTemperature")
+        # logger.debug IntegrationFix(Temp,dimen), "\tIntegration Fix"
+        # logger.debug SymmetryFix(Temp, symm), "\tSymmetryFix"
+        logger.debug(f"{value}\tAvalue")
+        logger.debug(SymmetryFix(Temp, symm) + Cvalue(Temp, ixx, iyy, izz), "\tCvalue")
+        # return value + IntegrationFix(Temp,dimen) + SymmetryFix(Temp, symm) + Cvalue(Temp,ixx, iyy, izz)
+        return value + SymmetryFix(Temp, symm) + Cvalue(Temp, ixx, iyy, izz)
 
 
 # #ixx,iyy,izz: moment of inertia in (atomic mass) x A**2 (Use output of momentofinertia.py)
@@ -104,21 +103,21 @@ def StericFix(T, mass, symm, ixx=0, iyy=0, izz=0, debug=False):
 #         #monatomic
 #         dimen = 0
 #         if debug:
-#             print value, "\tAvalue"
+#             logger.debug value, "\tAvalue"
 #         return value
 #     elif izz == 0:
 #         #rodlike
 #         dimen = 1
 #         if debug:
-#             print value, "\tAvalue"
-#             print Cvalue2(T,ixx), "\tCvalue2"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue2(T,ixx), "\tCvalue2"
 #         return value + Cvalue2(T,ixx)
 #     else:
 #         #polyatomic
 #         dimen = 3
 #         if debug:
-#             print value, "\tAvalue"
-#             print Cvalue(T,ixx, iyy, izz), "\tCvalue"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
 #         return value + Cvalue(T,ixx, iyy, izz)
 
 
@@ -129,28 +128,28 @@ def StericFix(T, mass, symm, ixx=0, iyy=0, izz=0, debug=False):
 #         #monatomic
 #         dimen = 0
 #         if debug:
-#             print value, "\tAvalue"
+#             logger.debug value, "\tAvalue"
 #         return value
 #     elif izz == 0:
 #         #rodlike
 #         dimen = 1
 #         if debug:
-#             print SymmetryFix(T, symm), "\tSymmetryFix"
-#             print value, "\tAvalue"
-#             print Cvalue2(T,ixx), "\tCvalue2"
+#             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue2(T,ixx), "\tCvalue2"
 #         return value + SymmetryFix(T, symm) + Cvalue2(T,ixx)
 #     else:
 #         #polyatomic
 #         dimen = 3
 #         if debug:
-#             print SymmetryFix(T, symm), "\tSymmetryFix"
-#             print value, "\tAvalue"
-#             print Cvalue(T,ixx, iyy, izz), "\tCvalue"
+#             logger.debug SymmetryFix(T, symm), "\tSymmetryFix"
+#             logger.debug value, "\tAvalue"
+#             logger.debug Cvalue(T,ixx, iyy, izz), "\tCvalue"
 #         return value + SymmetryFix(T, symm) + Cvalue(T,ixx, iyy, izz)
 
 
-def chempot(T, p):
-    return -pc.NkB * T * (log(pc.kB * T / p))
+def chempot(Temp, p):
+    return -pc.NkB * Temp * (np.log(pc.kB * Temp / p))
 
 
 def test():
@@ -160,7 +159,7 @@ def test():
     B = 1838.675
     C = -31.737
     for T in range(273, 293):
-        print(
+        logger.debug(
             T,
             chempot(T, 101326) + Avalue(T, 16),
             chempot(T, antoine.VaporPressure(T, A, B, C)),
