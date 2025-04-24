@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import histo2f
-import histo
+import cage_integral.histo2f as histo2f
+import cage_integral.histo as histo
 
 # import math
 import sys
@@ -16,7 +16,7 @@ def prod(x):
     return p
 
 
-import molecule
+import vdwp.molecule as molecule
 
 
 def LoadMoleculeDict(filename):
@@ -52,13 +52,13 @@ def LoadMoleculeDict(filename):
     return moldict
 
 
-moldict = LoadMoleculeDict("DEFR")
+moldict = LoadMoleculeDict("cage_integral/DEFR")
 guest = sys.argv[1]
 T = 273.15
 
 for cage in 12, 14, 16:
     mol = moldict[guest]
-    histofile = guest + "." + ("%d" % cage) + "hedra.histo"
+    histofile = f"cage_integral/{guest}.{cage}hedra.histo"
     histogram = histo.loadAHisto(open(histofile))
     # f_c ######################
     if histogram != None:

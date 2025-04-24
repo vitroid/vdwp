@@ -1,9 +1,14 @@
 # coding: utf-8
-import CageIntegral.physconst as pc
+import vdwp.physconst as pc
 from logging import getLogger
 from functools import lru_cache
-import CageIntegral.histo as histo
-import CageIntegral.histo2f as histo2f
+import vdwp.histo as histo
+import vdwp.histo2f as histo2f
+
+
+# この関数は、温度とゲストの種類を受け取り、ゲストのエンカージングポテンシャルを計算します。
+# 温度はリストで指定され、ゲストは文字列で指定されます。
+# sterictermはゲストの立体反発項です。
 
 
 # @lru_cache
@@ -17,6 +22,6 @@ def EncagingFE(temperatures, guest, stericterm):
         # f_c ######################
         if histogram is not None:
 
-            f_c[cage] = (histo2f.fvalue(histogram, temperatures) + stericterm)
+            f_c[cage] = histo2f.fvalue(histogram, temperatures) + stericterm
             logger.debug(f"{cage}: {f_c[cage]}")
     return f_c
