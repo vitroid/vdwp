@@ -46,4 +46,19 @@ radii = {
     16: 4.587,
 }
 nmemb = {12: 20, 14: 24, 15: 26, 16: 28}
+
+
+# compatibility with old system8
+# cage_components = {"sII" : (136.,{16:8.,12:16.}), #cage 0 is Nw
+#                    "sI"  : (46., {12:2.,14:6.})}
+nma_file = {
+    "CS2": "lattice/C15retry/cat.0.renma.dist",
+    "sI": "lattice/A15retry/cat.0.renma.dist",
+}
+U_e = {
+    "CS2": -54.7751,
+    "sI": -54.3857,
+    "Ih": -55.2238,
+}
+
 # logger.debug(f"cage radii for LJD approximation: {radii}")

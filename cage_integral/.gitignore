@@ -1,9 +1,3 @@
-histogram
 *~
-*.dSYM/*
 *.histo
-test*/*
 __pycache__/*
-*.fvalues
-opt-3.19/
-opt-3.19.tar.gz
