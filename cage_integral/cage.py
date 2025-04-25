@@ -1,9 +1,7 @@
 # coding: utf-8
-import vdwp.physconst as pc
 from logging import getLogger
-from functools import lru_cache
-import vdwp.histo as histo
-import vdwp.histo2f as histo2f
+import loader
+import histo2f
 
 
 # この関数は、温度とゲストの種類を受け取り、ゲストのエンカージングポテンシャルを計算します。
@@ -11,13 +9,12 @@ import vdwp.histo2f as histo2f
 # sterictermはゲストの立体反発項です。
 
 
-# @lru_cache
 def EncagingFE(temperatures, guest, stericterm):
     logger = getLogger()
     f_c = dict()
     for cage in (12, 14, 15, 16):
-        histofile = f"data/{guest}.ice{cage}.histo"
-        histogram = histo.loadAHisto(open(histofile))
+        histofile = f"{guest}.{cage}hedra.histo"
+        histogram = loader.loadAHisto(open(histofile))
 
         # f_c ######################
         if histogram is not None:

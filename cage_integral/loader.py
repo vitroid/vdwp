@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 def loadHIST(file):
     line = file.readline()
     dimen = int(line)
@@ -12,7 +9,7 @@ def loadHIST(file):
     for i in range(nbin):
         line = file.readline()
         weight = float(line)
-        value = vmin + (i+0.5)*binwidth
+        value = vmin + (i + 0.5) * binwidth
         histo[value] = weight
     return histo
 
@@ -31,7 +28,7 @@ def loadSHST(file):
         if i < 0:
             break
         weight = float(columns[1])
-        value = vmin + (i+0.5)*binwidth
+        value = vmin + (i + 0.5) * binwidth
         histo[value] = weight
     return histo
 
@@ -50,12 +47,10 @@ def loadAHisto(file):
     return None
 
 
-
 def test():
-    h1 = loadAHisto(open("data/LJPR2LB_.16hedra.histo"))
+    h1 = loadAHisto(open("LJME____.16hedra.histo"))
     for key in sorted(h1.keys()):
-        print(key,h1[key])
-
+        print(key, h1[key])
 
 
 if __name__ == "__main__":
