@@ -6,7 +6,7 @@ authors = ["vitroid <vitroid@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.14"
 numpy = "^2.2.5"
 jupyter = "^1.1.1"
 matplotlib = "^3.10.1"
@@ -14,7 +14,11 @@ attrdict = "^2.0.1"
 genice2 = "^2.2.9"
 genice2-cage = "^2.5.2"
 pandoc = "^2.4"
+pymatgen = "^2025.4.24"
 
+
+[tool.poetry.group.dev.dependencies]
+pymatgen = "^2025.4.24"
 
 [build-system]
 requires = ["poetry-core"]
