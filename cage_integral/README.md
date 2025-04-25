@@ -17,4 +17,8 @@ $$
 \tag{4.1}
 $$
 
-の総和を計算する代わりに、$w_k$の値を横軸とし、縦軸には$\sin\theta{\rm \Delta}x{\rm \Delta}y{\rm \Delta}z{\rm \Delta}\phi{\rm \Delta}\psi{\rm \Delta}\theta$を積算したヒストグラムを作成する。任意の温度での分配関数はこのヒストグラムに$\exp[-\beta w_k]$をかけながら積分すれば得られる。また、平均ポテンシャル$\bar{w}_k$は、このヒストグラムに$w_k\exp[-\beta w_k]$をかけながら積分し、分配関数で割れば得られる。
+の総和を計算する代わりに、$w_k$の値を横軸とし、縦軸には$\sin\theta{\rm \Delta}x{\rm \Delta}y{\rm \Delta}z{\rm \Delta}\phi{\rm \Delta}\psi{\rm \Delta}\theta$を積算したヒストグラムを作成する。
+
+任意の温度での分配関数はこのヒストグラムに$\exp[-\beta w_k]$をかけながら積分すれば得られる。
+
+また、平均ポテンシャル$\bar{w}_k$は、このヒストグラムに$w_k\exp[-\beta w_k]$をかけながら積分し、分配関数で割れば得られる。
