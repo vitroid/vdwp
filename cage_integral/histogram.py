@@ -54,6 +54,7 @@ def scan_inside_a_cage(
             queue.append((i, j - 1, k))
             queue.append((i, j, k - 1))
     H = np.histogram(list(site_interaction.values()), bins=1000, range=(-20, 0))
+    # dxdydzを掛ける
     H = (H[0] * (tick * 1e-10) ** 3, H[1])
     return H
 
@@ -99,7 +100,7 @@ def test():
         H = scan_inside_a_cage(neighbors, eps, sig, tick)
         I = np.sum(H[0] * np.exp(-(H[1][1:] + H[1][:-1]) / 2 / (Nk * T)))
         f_0 = -Nk * T * np.log(I)
-        print(cage, f_0)
+        print(f"Free energy of Me encaged in a {cage}hedron: {f_0} kJ/mol")
         # 単原子分子なら、Pythonで書いてもたいした時間はかからない。
         # しかし、水分子のような多原子分子になると、計算時間が膨大になる。
 
