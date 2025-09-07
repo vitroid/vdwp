@@ -52,6 +52,7 @@ def fvalue2(R: float, z: int, sigma: float, epsilon: float, beta: float) -> floa
     )
 
 
+# test
 @deprecated("fvalue2")
 def fvalue(Rz: dict, sigma: float, epsilon: float, beta: float, plt=None) -> float:
     """
