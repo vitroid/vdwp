@@ -1,0 +1,23 @@
+{
+  "name": "vdwp",
+  "version": "1.0.0",
+  "description": "Functions for van der Waals--Platteeuw theory.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitroid/vdwp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vitroid/vdwp/issues"
+  },
+  "homepage": "https://github.com/vitroid/vdwp#readme",
+  "dependencies": {
+    "zenn-cli": "^0.2.10"
+  }
+}

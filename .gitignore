@@ -11,3 +11,4 @@ eq.txt
 __pycache__/
 *.dSYM
 2017/
+package-lock.json
