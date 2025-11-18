@@ -145,7 +145,7 @@ Z(N,T,V)=\frac{1}{N!h^{3N}}\int\int\exp\left(-\frac{\phi}{kT}\right)\exp\left(-\
 \tag{1.2.16}
 $$
 
-## 1.2.1 理想気体
+### 1.2.1 理想気体
 
 理想気体なら相互作用$\phi$はない。
 
@@ -169,7 +169,7 @@ $$G=A+pV=NkT\ln\rho\lambda^3     \tag{1.2.1.5}$$
 
 $$\mu_g=\frac{\partial G}{\partial N}=kT\ln\rho\lambda^3     \tag{1.2.1.6}$$
 
-## 1.2.2 実在気体
+### 1.2.2 実在気体
 
 一般に、
 
@@ -206,6 +206,8 @@ $$A=A_0+\int_V^\infty (p-p_0)dV     \tag{1.2.2.4}$$
 三相平衡の場合、ゲストのモル分率は結果として得られるので、大正準集団的に扱う。(水の分子数は固定されているので、こちらは正準集団的)
 
 ## 1.4 二相共存
+
+> ハイドレートがどういう条件で分解するかを知りたい場合には三相平衡が有用。しかし、それでは分解直前の包接水和物の性質しかわからない。
 
 2 相共存には次の 2 種類が考えられる。
 
@@ -258,22 +260,24 @@ $$y=\frac{\sum_jn_j}{N_w+\sum_jn_j}     \tag{1.4.6}$$
 
 > イメージしやすいように、メタンハイドレートを想定しよう 。メタンハイドレートには 12 面体と 14 面体の 2 種類のケージがある。これらの個数をそれぞれ$N_{12}, N_{14}$と書く。$\alpha_{12}=N_{12}/N_w=1/23, \alpha_{14}=3/23$である。
 
-$$n_{12}=x_{12}\alpha_{12} N_w$$
+$$n_{12}=x_{12}\alpha_{12} N_w     \tag{1.4.7}$$
 
-$$x_{12}=\frac{\exp\beta(\mu_g-f_{12})}{1+\exp\beta(\mu_g-f_{12})}=\frac{CF_{12}}{1+CF_{12}}$$
+$$x_{12}=\frac{\exp\beta(\mu_g-f_{12})}{1+\exp\beta(\mu_g-f_{12})}=\frac{CF_{12}}{1+CF_{12}}     \tag{1.4.8}$$
 
 これらを、(1.4.6)に代入すると、
 
-$$\sum_jn_j=\frac{yN_w}{1-y}=x_{12}\alpha_{12}N_w+x_{14}\alpha_{14}N_w$$
+$$\sum_jn_j=\frac{yN_w}{1-y}=x_{12}\alpha_{12}N_w+x_{14}\alpha_{14}N_w     \tag{1.4.9}$$
 
-$$\frac{y}{1-y}=\frac{\alpha_{12}CF_{12}}{1+CF_{12}}+\frac{\alpha_{14}CF_{14}}{1+CF_{14}}$$
+$$\frac{y}{1-y}=\frac{\alpha_{12}CF_{12}}{1+CF_{12}}+\frac{\alpha_{14}CF_{14}}{1+CF_{14}}     \tag{1.4.10}$$
 
 $\frac{y}{1-y}\equiv Y$と書くと、
-$$Y(1+CF_{12})(1+CF_{14})=\alpha_{12}CF_{12}(1+CF_{14})+\alpha_{14}CF_{14}(1+CF_{12})$$
+$$Y(1+CF_{12})(1+CF_{14})=\alpha_{12}CF_{12}(1+CF_{14})+\alpha_{14}CF_{14}(1+CF_{12})     \tag{1.4.11}$$
 整理すると、
 $$Y+YCF_{12}+YCF_{14}+YC^2F_{12}F_{14}=\alpha_{12}CF_{12}+\alpha_{14}CF_{14}+(\alpha_{12}+\alpha_{14})C^2F_{12}F_{14}$$
-$$C^2F_{12}F_{14}(Y-\alpha_{12}-\alpha_{14})+C((Y-\alpha_{12})F_{12}+(Y-\alpha_{14})F_{14})+Y=0$$
+$$C^2F_{12}F_{14}(Y-\alpha_{12}-\alpha_{14})+C((Y-\alpha_{12})F_{12}+(Y-\alpha_{14})F_{14})+Y=0     \tag{1.4.12}$$
 
 $C$に関するこの二次方程式を解くことで、$y$から$\mu_g$が得られる。[^TYM2018]
+
+> 見てわかる通り、2 成分の混合気体を扱う場合には、4 次方程式になる。しかし、数値解が得られればいいので、計算は容易である。
 
 [^TYM2018]: Tanaka, H., Yagasaki, T. & Matsumoto, M. On the Thermodynamic Stability of Clathrate Hydrates VI: Complete Phase Diagram. J. Phys. Chem. B 122, 297–308 (2018).
