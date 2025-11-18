@@ -272,4 +272,6 @@ $$Y(1+CF_{12})(1+CF_{14})=\alpha_{12}CF_{12}(1+CF_{14})+\alpha_{14}CF_{14}(1+CF_
 $$Y+YCF_{12}+YCF_{14}+YC^2F_{12}F_{14}=\alpha_{12}CF_{12}+\alpha_{14}CF_{14}+(\alpha_{12}+\alpha_{14})C^2F_{12}F_{14}$$
 $$C^2F_{12}F_{14}(Y-\alpha_{12}-\alpha_{14})+C((Y-\alpha_{12})F_{12}+(Y-\alpha_{14})F_{14})+Y=0$$
 
-$C$に関するこの二次方程式を解くことで、$y$から$\mu_g$が得られる。
+$C$に関するこの二次方程式を解くことで、$y$から$\mu_g$が得られる。[^TYM2018]
+
+[^TYM2018]: Tanaka, H., Yagasaki, T. & Matsumoto, M. On the Thermodynamic Stability of Clathrate Hydrates VI: Complete Phase Diagram. J. Phys. Chem. B 122, 297–308 (2018).
