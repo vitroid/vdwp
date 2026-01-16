@@ -5,22 +5,19 @@
 # system7において，IntegrationFixが一部加算されていなかった問題を修正．
 # 2015年度のPana報告書作成用に最適化する．
 # 過去の論文と照合を続ける．
-
-import cage_integral.histo2f as histo2f
-import cage_integral.histo as histo
-import vdwp
-import vdwp.physconst as pc
 import math
-import numpy as np
-import vdwp.crystals as crystals
-import sys
-import matplotlib.pyplot as plt
 import os
-import vdwp.chempot as chempot
+import sys
 from logging import getLogger, basicConfig, DEBUG
 
-logger = getLogger(__name__)
-basicConfig(level=DEBUG)
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+
+from cage_integral import histo2f, loader, molecule
+import vdwp
+import vdwp.physconst as pc
+from vdwp import vdWP, chempot, crystals, normalmode, antoine
 
 
 def elimempty(values):
@@ -32,9 +29,7 @@ def elimempty(values):
 
 
 def usage():
-    print(
-        "usage: {0} [-p][-T f,t,i][-L p,q,r][-G p,q,r][-X p,q,r][d]".format(sys.argv[0])
-    )
+    print(f"usage: {sys.argv[0]} [-p][-T f,t,i][-L p,q,r][-G p,q,r][-X p,q,r][d]")
     print("\t-p\t\tPressure [atm](1.0)")
     print("\t-T f,t,i\tTemperature range [From, To, Intv](263,303,3)")
     print("\t-L p,q,r\tLatent heat mode; p,q,r specifies molecular types in ID08.")
@@ -49,10 +44,6 @@ def prod(x):
     for v in x:
         p *= v
     return p
-
-
-#! Test case for methane hydrate
-import vdwp.molecule as molecule
 
 
 def LoadMoleculeDict(filename):
@@ -87,6 +78,9 @@ def LoadMoleculeDict(filename):
     moldict["TYTHF___"].name = "THF(Yaga)"
     return moldict
 
+
+logger = getLogger(__name__)
+basicConfig(level=DEBUG)
 
 moldict = LoadMoleculeDict("cage_integral/DEFR")
 #
@@ -161,9 +155,13 @@ def VaporPressure(temp, FE, dens, mass):
     return pvap
 
 
+def banner(message):
+    logger = getLogger(__name__)
+    logger.info(message + " " + "#" * (71 - len(message)))
+
+
 # /r2/matto/matto-gromacs/Pana/Neat/CPen+5E_/2015-01-04
 Hneat = dict()
-import os
 
 dirs = os.listdir("MDdata/neat/1atm")
 if guest in dirs:
@@ -231,8 +229,6 @@ cages = crystals.cage_components[structure][1]
 ####### Clathrate-independent terms ####################################
 # chemical potential of water ice
 # Q構造のポテンシャルと振動の寄与から算出する。
-import vdwp.vdWP as vdWP
-import vdwp.normalmode as normalmode
 
 logger.info("Calculating chemical potential of water ice...")
 mu_i = np.array(
@@ -249,7 +245,6 @@ mu_i = np.array(
 
 # chemical potential of liquid water
 # Antoineの式を使う。
-import vdwp.antoine as antoine
 
 logger.info("Calculating chemical potential of liquid water...")
 # mu_w = np.array([ antoine.ChemicalPotentialOfWater(T) for T in temperatures ])
@@ -394,8 +389,8 @@ h_k = dict()
 for cage in cages:
     mol = moldict[guest]
 
-    histofile = "data/" + guest + "." + ("%d" % cage) + "hedra.histo"
-    histogram = histo.loadAHisto(open(histofile))
+    histofile = f"cage_integral/{guest}.{cage}hedra.histo"
+    histogram = loader.loadAHisto(open(histofile))
 
     # f_c ######################
     if histogram != None:
@@ -413,9 +408,7 @@ for cage in cages:
                 # 2016-2-16 もうあとはこの部分でのCプログラムとの連携の問題しか考えられない．明日なんとかする．
                 # 以前試したような，球形からわずかに分裂したようなdumbbellで計算してみるか．
                 # + chempot.IntegrationFixMinus(T, mol.dimen)*2  #Added it 2016-2-15 is it correct?
-                + chempot.StericFix(
-                    T, mol.mass, mol.symm, mol.moi[0], mol.moi[1], mol.moi[2]
-                )
+                + chempot.StericFix(T, mol.mass, mol.symm, mol.moi)
                 for T in temperatures
             ]
         )
@@ -473,8 +466,8 @@ if debug:
 # Must be same as the averaged potential energy in the cage w_k in (36)
 if debug:
     for cage in f_c:
-        histofile = "data/" + guest + "." + ("%d" % cage) + "hedra.histo"
-        histogram = histo.loadAHisto(open(histofile))
+        histofile = f"cage_integral/{guest}.{cage}hedra.histo"
+        histogram = loader.loadAHisto(open(histofile))
         if histogram != None:
             dof = moldict[guest].dof
             x = dof / 2.0
@@ -566,7 +559,7 @@ for line in """
         a, b = [float(x) for x in cols]
         T_w.append(a)
         H_w.append(b)
-h_wMD = np.array([ip.value(T, T_w, H_w) for T in temperatures])
+h_wMD = np.array([vdwp.value(T, T_w, H_w) for T in temperatures])
 if mode == "Graphs":
     plt.figure(1)
     plt.plot(temperatures, h_w, label="Water (Antoine)")
@@ -599,7 +592,7 @@ if guest in Hneat:
         plt.ylabel("H_g  [kJ/mol]")
         plt.legend(loc="center left", bbox_to_anchor=(0.65, 0.5))
 if guest in Hsolu:
-    h_sMD = np.array([ip.value(T, *Hsolu[guest]) for T in temperatures])
+    h_sMD = np.array([vdwp.value(T, *Hsolu[guest]) for T in temperatures])
     h_cMD = h_e + num_guest * h_k[cage]
 
 
@@ -635,8 +628,8 @@ def TestMode(guest):
 
     mol = moldict[guest]
     for cage in (12, 14, 16):
-        histofile = "data/" + guest + "." + ("%d" % cage) + "hedra.histo"
-        histogram = histo.loadAHisto(open(histofile))
+        histofile = f"cage_integral/{guest}.{cage}hedra.histo"
+        histogram = loader.loadAHisto(open(histofile))
         if histogram:
             print(histo2f.fvalue(histogram, T), "raw f0_{0}".format(cage))
             print(
@@ -671,7 +664,7 @@ def TestMode(guest):
 
 def CageIntegrals(guest=""):
     if guest == "":
-        print(("Cage Integrals " + "#" * 72)[0:72])
+        banner("Cage Integrals")
         print(
             "{0}\t{1}\t{2}\t{3}\t{4}\t{5}".format(
                 "guest", "cage", "f0_raw", "ster", "f", "occup"
@@ -682,8 +675,8 @@ def CageIntegrals(guest=""):
         T = temperatures[0]
         for cage in (12, 14, 16):
             if cage in f_c:
-                histofile = "data/" + guest + "." + ("%d" % cage) + "hedra.histo"
-                histogram = histo.loadAHisto(open(histofile))
+                histofile = f"cage_integral/{guest}.{cage}hedra.histo"
+                histogram = loader.loadAHisto(open(histofile))
                 if histogram:
                     e = np.exp(beta * (mu_g - f_c[cage]))
                     y = e / (1.0 + e)
@@ -708,7 +701,7 @@ def CageIntegrals(guest=""):
 
 def Stabilities(guest=""):
     if guest == "":
-        print(("Stabilities " + "#" * 72)[0:72])
+        banner("Stabilities")
         print(
             "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}".format(
                 "guest", "struc", "empty", "guest", "total", "ice", "rel_ice"
@@ -729,7 +722,7 @@ def Stabilities(guest=""):
 
 
 def EmptyLattices(guest=""):
-    print(("Empty Lattices " + "#" * 72)[0:72])
+    banner("Empty Lattices")
     print("{0}\t{1}\t{2}\t{3}".format("struc", "u", "f", "u+f"))
     T = temperatures[0]
     for struc in ("Ih", "sI", "sII"):
@@ -748,16 +741,17 @@ def EmptyLattices(guest=""):
 
 def ChemicalPotentials(guest=""):
     if guest == "":
-        print(("Chemical Potentials of the Guests " + "#" * 72)[0:72])
+        banner("Chemical Potentials of the Guests")
         print("{0}\t{1}".format("guest", "mu_g"))
     else:
         print("{0}\t{1}".format(guest, mu_g[0]))
 
 
 def TestReport(guest):
-    print(("Test Report " + "#" * 72)[0:72])
-    print("Temperature:", temperatures[0])
-    print("Pressure:", pressure / 101325)
+    logger = getLogger(__name__)
+    banner("Test Report")
+    logger.info("Temperature: %s", temperatures[0])
+    logger.info("Pressure: %s", pressure / 101325)
     EmptyLattices()
     ChemicalPotentials()
     ChemicalPotentials(guest)
@@ -768,8 +762,6 @@ def TestReport(guest):
 
 
 def GraphMode():
-    import matplotlib.pyplot as plt
-    import matplotlib
 
     matplotlib.rcParams["figure.figsize"] = (10.0, 8.0)
     font = {"family": "sans serif", "weight": "roman", "size": 14}
@@ -873,12 +865,11 @@ def LatentHeatMode():
         mp = 0
         mp_struc = ""
         for structure in structures:
-            mp_w = ip.zerocross(temperatures, mu_f[(guest, structure)] - mu_w3)
-            if debug:
-                print(mp_w, "MPW")
-                print("mu_f", mu_f[(guest, structure)])
-                print("mu_w", mu_w)
-                print("diff", mu_f[(guest, structure)] - mu_w)
+            mp_w = vdwp.zerocross(temperatures, mu_f[(guest, structure)] - mu_w3)
+            logger.debug(mp_w, "MPW")
+            logger.debug("mu_f", mu_f[(guest, structure)])
+            logger.debug("mu_w", mu_w)
+            logger.debug("diff", mu_f[(guest, structure)] - mu_w)
             if temperatures[0] < mp_w < temperatures[-1]:
                 if mp < mp_w:
                     mp_struc = structure
@@ -894,8 +885,10 @@ def LatentHeatMode():
             #         mp = mp_i
         if mp_struc != "":
             # latent = ip.zerocross( dh_fwpm[(guest, mp_struc)], temperatures - mp )
-            latent = ip.value(mp, temperatures, dh_fwpm)
-            print("{0}\t{1}\t{2}\t{3}\t# kJ/kG".format(guest, mp_struc, mp, latent))
+            latent = vdwp.value(mp, temperatures, dh_fwpm)
+            logger.info(
+                "{0}\t{1}\t{2}\t{3}\t# kJ/kG".format(guest, mp_struc, mp, latent)
+            )
 
 
 if mode == "Test":
@@ -908,37 +901,12 @@ if mode == "Latent":
     LatentHeatMode()
 
 if guest in Hneat:
-    print(
-        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}".format(
-            "#temp", "h_gMD", "mu_g", "f_16", "mu-f", "mu_f", "name"
-        )
-    )
-    print(
-        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}".format(
-            270,
-            ip.value(270, temperatures, h_gMD),
-            ip.value(270, temperatures, mu_g),
-            ip.value(270, temperatures, f_c[16]),
-            ip.value(270, temperatures, mu_g - f_c[16]),
-            ip.value(270, temperatures, mu_f),
-            mol.name,
-        )
+    logger.info(f"#temp\th_gMD\tmu_g\tf_16\tmu-f\tmu_f\tname")
+    logger.info(
+        f"{270}\t{vdwp.value(270, temperatures, h_gMD)}\t{vdwp.value(270, temperatures, mu_g)}\t{vdwp.value(270, temperatures, f_c[16])}\t{vdwp.value(270, temperatures, mu_g - f_c[16])}\t{vdwp.value(270, temperatures, mu_f)}\t{mol.name}"
     )
 else:
-    print(
-        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}".format(
-            "#temp", "mu_g", "f_16", "mu_s", "mu_c", "h_sMD", "h_c", "name"
-        )
-    )
-    print(
-        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}".format(
-            270,
-            ip.value(270, temperatures, mu_g),
-            ip.value(270, temperatures, f_c[16]),
-            ip.value(270, temperatures, mu_s),
-            ip.value(270, temperatures, mu_f),
-            ip.value(270, temperatures, h_sMD),
-            ip.value(270, temperatures, h_cMD),
-            mol.name,
-        )
+    logger.info(f"#temp\tmu_g\tf_16\tmu_s\tmu_c\th_sMD\th_c\tname")
+    logger.info(
+        f"{270}\t{vdwp.value(270, temperatures, mu_g)}\t{vdwp.value(270, temperatures, f_c[16])}\t{vdwp.value(270, temperatures, mu_s)}\t{vdwp.value(270, temperatures, mu_f)}\t{vdwp.value(270, temperatures, h_sMD)}\t{vdwp.value(270, temperatures, h_cMD)}\t{mol.name}"
     )

@@ -12,3 +12,4 @@ __pycache__/
 *.dSYM
 2017/
 package-lock.json
+node_modules/
