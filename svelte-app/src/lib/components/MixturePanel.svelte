@@ -17,6 +17,53 @@
   let gasFreeEnergies: Record<string, Record<number, number>> = {};
   let lastCalcTemperature = 0;
 
+  // 1. Line Plot Ticks: Variable at ends, 1% in middle
+  function generateLineTicks() {
+    const ticks: number[] = [];
+    
+    // Left end: 0 to 0.01 (exponential)
+    let x = 0;
+    let step = 0.00001;
+    while (x < 0.01) {
+      ticks.push(x);
+      x += step;
+      step *= 2;
+    }
+    
+    // Middle: 0.01 to 0.99 (fixed 0.01 step)
+    for (let i = 1; i <= 99; i++) {
+      const val = i / 100;
+      if (val >= 0.01 && val <= 0.99) {
+        ticks.push(val);
+      }
+    }
+    
+    // Right end: 0.99 to 1.0 (exponentially fine)
+    const rightTicks: number[] = [];
+    x = 1.0;
+    step = 0.00001;
+    while (x > 0.99) {
+      rightTicks.push(x);
+      x -= step;
+      step *= 2;
+    }
+    ticks.push(...rightTicks.reverse());
+    
+    // Unique and sorted to be safe
+    return Array.from(new Set(ticks.map(t => Number(t.toFixed(6))))).sort((a, b) => a - b);
+  }
+
+  // Helper to calculate a point
+  function calcPoint(T: number, P: number, frac: number, f_a: Record<number, number>, f_b: Record<number, number>) {
+    const mu_a = chempot.ideal_gas_chemical_potential(T, P * (1 - frac) * 101325) + chempot.phase_space_integration_correction(T, 0);
+    const mu_b = chempot.ideal_gas_chemical_potential(T, P * frac * 101325) + chempot.phase_space_integration_correction(T, 0);
+    const res = vdwp.calculate_chemical_potential_by_occupation(T, [f_a, f_b], [mu_a, mu_b], ['CS1', 'CS2', 'HS1']);
+    return {
+      x: res['CS1'] - res['HS1'],
+      y: res['CS2'] - res['HS1']
+    };
+  }
+
   async function updatePlot() {
     const T = temperature;
     const P = pressureBar;
@@ -50,79 +97,69 @@
       ['Methane', 'cC3H6', 'orange'],
     ];
 
-    // Create 1% steps for smooth lines
-    const smoothTicks = Array.from({ length: 101 }, (_, i) => i / 100);
+    const lineTicks = generateLineTicks();
 
     for (const [a, b, color] of mixturePairs) {
-      const mx: number[] = [];
-      const my: number[] = [];
       const f_a = gasFreeEnergies[a];
       const f_b = gasFreeEnergies[b];
       
-      // Calculate smooth line (1% steps)
-      for (const frac of smoothTicks) {
-        const mu_a = chempot.ideal_gas_chemical_potential(T, P * (1 - frac) * 101325) + chempot.phase_space_integration_correction(T, 0);
-        const mu_b = chempot.ideal_gas_chemical_potential(T, P * frac * 101325) + chempot.phase_space_integration_correction(T, 0);
-        
-        const Deltamu_c = vdwp.calculate_chemical_potential_by_occupation(
-          T, [f_a, f_b], [mu_a, mu_b], ['CS1', 'CS2', 'HS1']
-        );
-        mx.push(Deltamu_c['CS1'] - Deltamu_c['HS1']);
-        my.push(Deltamu_c['CS2'] - Deltamu_c['HS1']);
+      // 1. Line Plot (Variable at ends, 1% middle)
+      const lx: number[] = [];
+      const ly: number[] = [];
+      for (const frac of lineTicks) {
+        const p = calcPoint(T, P, frac, f_a, f_b);
+        lx.push(p.x);
+        ly.push(p.y);
       }
-
-      // 1. Line Trace
       traces.push({
-        x: mx,
-        y: my,
+        x: lx, y: ly,
         mode: 'lines',
         showlegend: false,
         line: { color, width: 1 },
         hoverinfo: 'none'
       });
 
-      // 2. 10% step markers
+      // 2. 10% Marker Plot (0, 0.1, ..., 1.0)
       const x10: number[] = [];
       const y10: number[] = [];
-      for (let i = 0; i <= 100; i += 10) {
-        x10.push(mx[i]);
-        y10.push(my[i]);
+      for (let i = 0; i <= 10; i++) {
+        const p = calcPoint(T, P, i / 10, f_a, f_b);
+        x10.push(p.x);
+        y10.push(p.y);
       }
       traces.push({
-        x: x10,
-        y: y10,
+        x: x10, y: y10,
         mode: 'markers',
         showlegend: false,
         marker: { color, size: 6, symbol: 'circle' },
         hoverinfo: 'none'
       });
 
-      // 3. 1% small markers (0-10% and 90-100%)
+      // 3. 1% Small Marker Plot (1-9% and 91-99%)
       const x1: number[] = [];
       const y1: number[] = [];
-      // 0 to 10%
-      for (let i = 0; i <= 10; i++) {
-        x1.push(mx[i]);
-        y1.push(my[i]);
+      for (let i = 1; i <= 9; i++) {
+        const p = calcPoint(T, P, i / 100, f_a, f_b);
+        x1.push(p.x); y1.push(p.y);
       }
-      // 90 to 100%
-      for (let i = 90; i <= 100; i++) {
-        x1.push(mx[i]);
-        y1.push(my[i]);
+      for (let i = 91; i <= 99; i++) {
+        const p = calcPoint(T, P, i / 100, f_a, f_b);
+        x1.push(p.x); y1.push(p.y);
       }
       traces.push({
-        x: x1,
-        y: y1,
+        x: x1, y: y1,
         mode: 'markers',
         showlegend: false,
         marker: { color, size: 3, symbol: 'circle' },
         hoverinfo: 'none'
       });
 
-      // 4. End point labels (at 0% and 100%)
+      // 4. End point labels
+      const pStart = calcPoint(T, P, 0, f_a, f_b);
+      const pEnd = calcPoint(T, P, 1, f_a, f_b);
       traces.push({
-        x: [mx[0], mx[100]],
-        y: [my[0], my[100]],
+        x: [pStart.x, pEnd.x],
+        y: [pStart.y, pEnd.y],
         mode: 'text',
         text: [a, b],
         textposition: ['bottom center', 'top center'],
@@ -134,7 +171,7 @@
     Plotly.react(plotDiv, traces, {
       ...baseLayout,
       title: `Binary Mixtures (273.15 K, Total ${P} bar)`,
-      showlegend: false // Disable legend as requested
+      showlegend: false
     });
     isCalculating = false;
   }
