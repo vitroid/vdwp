@@ -65,7 +65,8 @@
 
     Plotly.react(plotDiv, singleTraces, {
       ...baseLayout,
-      title: `Single Guests (${T.toFixed(2)} K, ${P} bar)`
+      title: `Single Guests (${T.toFixed(2)} K, ${P} bar)`,
+      showlegend: false
     });
     isCalculating = false;
   }
